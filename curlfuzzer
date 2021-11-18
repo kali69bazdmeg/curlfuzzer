@@ -1,0 +1,1919 @@
+#!/usr/bin/env php
+<?php
+
+	set_time_limit(0);
+	ini_set('memory_limit', '132768M');
+	ini_set('max_execution_time', 0);
+	ini_set('display_errors', false);
+	ini_set('display_startup_errors', false);
+
+	if (!function_exists('curl_init')) {
+		printf(" %s\n", 'PHP cURL is not installed!');
+		die();
+	}
+
+	if (!file_exists($_SERVER['HOME'] . '/.config')) {
+		if (!mkdir($_SERVER['HOME'] . '/.config')) {
+			printf(" %s\n", 'Failed to create directy');
+			die();
+		}
+	}
+
+	if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer')) {
+		if (!mkdir($_SERVER['HOME'] . '/.config/curlfuzzer')) {
+			printf(" %s\n", 'Failed to create directy');
+			die();
+		}
+	}
+
+	if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/config.json')) {
+		$conf = [
+			'version' => '1.0',
+			'thread' => '120',
+
+			'user-agent' => [
+				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
+				'ios'     => 'Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B176 Safari/7534.48.3',
+				'android' => 'Mozilla/5.0 (Linux; U; Android 2.2; en-us; Droid Build/FRG22D) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
+			],
+		];
+
+		$config = fopen($_SERVER['HOME'] . '/.config/curlfuzzer/config.json', 'w');
+		fwrite($config, json_encode($conf));
+		fclose($config);
+	}
+
+	$config = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/config.json');
+	$config = json_decode($config, true);
+
+	if (intval(exec('tput cols')) < 120) {
+		printf(" %s\n", 'Please set terminal width min on 120 pixel.');
+		die();
+	}
+
+	$gopt_str = ['u:', 'w:', 'd:', 'p:', 't:', 'X:', 'H:', 'A:', 'b:', 'q', 'f', 'h', 'r', 'i:', 's'];
+	define('COMMAND', getopt(implode('', $gopt_str), $gopt_arr = [
+		'url:', 'wordlist:', 'data:', 'proxy:', 'thread:', 'method:',
+		'header:', 'user-agent:', 'interface:', 'cookie:', 'reflect',
+		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
+		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
+		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
+		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
+
+		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'bt:',
+		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'st:',
+	]));
+
+	foreach ($gopt_str as $key => $opt) {
+		array_push($gopt_arr, $gopt_str[$key]);
+	}
+
+	foreach ($gopt_arr as $key => $arr) {
+		if (strlen($gopt_arr[$key]) > 2) {
+			$gopt_arr[$key] = '--' . str_replace(':', '', $gopt_arr[$key]);
+		}
+		else {
+			$gopt_arr[$key] = '-'  . str_replace(':', '', $gopt_arr[$key]);
+		}
+	}
+
+	foreach (preg_grep('/^\-.\b/', $argv) as $key => $query) {
+		if (count(preg_grep('/' . $query . '\b/', $gopt_arr)) !== 1) {
+			printf(" %s: '%s'\n", 'Error: unknown flag:', $query);
+			$stop = true;
+		}
+	}
+
+	if (isset($stop) && $stop) {
+		die();
+	}
+	else {
+		unset($arr);
+		unset($gopt_str);
+		unset($gopt_arr);
+		unset($opt);
+		unset($key);
+		unset($query);
+		unset($stop);
+	}
+
+	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (isset(COMMAND['w']) || isset(COMMAND['wordlist']) || isset(COMMAND['test'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']))) {
+		$fuzz = [];
+		if (isset(COMMAND['url'])) {
+			if (is_string(COMMAND['url'])) {
+				$url = COMMAND['url'];
+
+				if ($url_fuzz = is_integer($number = preg_match_all('/FUZZ/', $url))) {
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === 0) {
+					$url_fuzz = false;
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND["url"]); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '--url', COMMAND['url'][$i]);
+				}
+				die();
+			}
+		}
+		elseif (isset(COMMAND['u'])) {
+			if (is_string(COMMAND['u'])) {
+				$url = COMMAND['u'];
+
+				if ($url_fuzz = is_integer($number = preg_match_all('/FUZZ/', $url))) {
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === 0) {
+					$url_fuzz = false;
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND["u"]); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '-u', COMMAND['u'][$i]);
+				}
+				die();
+			}
+		}
+
+		if (isset(COMMAND['data'])) {
+			if (is_string(COMMAND['data'])) {
+				$data = COMMAND['data'];
+				$use_data = true;
+
+				if ($data_fuzz = is_integer($number = preg_match_all('/FUZZ/', $data))) {
+					json_decode($data);
+
+					if (json_last_error() === JSON_ERROR_NONE) {
+						$json = true;
+					}
+					else {
+						$json = false;
+					}
+
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === 0) {
+					$data_fuzz = false;
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND['data']); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '--data', COMMAND['data'][$i]);
+				}
+				die();
+			}
+		}
+		elseif (isset(COMMAND['d'])) {
+			if (is_string(COMMAND['d'])) {
+				$data = COMMAND['d'];
+				$use_data = true;
+
+				if ($data_fuzz = is_integer($number = preg_match_all('/FUZZ/', $data))) {
+					json_decode($data);
+
+					if (json_last_error() === JSON_ERROR_NONE) {
+						$json = true;
+					}
+					else {
+						$json = false;
+					}
+
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === 0) {
+					$data_fuzz = false;
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND['d']); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '-d', COMMAND['d'][$i]);
+				}
+				die();
+			}
+		}
+
+		if (isset(COMMAND['wordlist'])) {
+			if (is_string(COMMAND['wordlist'])) {
+				if (file_exists(COMMAND['wordlist'])) {
+					if (is_file(COMMAND['wordlist'])) {
+						$wordlines = file(COMMAND['wordlist']);
+
+						if (count($wordlines) === 0) {
+							printf("\r %s \e[0;31m%s\e[0m %s\n", '--wordlist', COMMAND['wordlines'], ') This file is empty');
+							die();
+						}
+					}
+					else {
+						printf("\r %s \e[0;31m%s\e[0m %s\n", '--wordlist', COMMAND['wordlist'], ') This is not a file');
+						die();
+					}
+				}
+				else {
+					printf("\r %s \e[0;31m%s\e[0m %s\n", '--wordlist', COMMAND['wordlist'], ') This file does not exist');
+					die();
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND['wordlist']); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '--wordlist', COMMAND['wordlist'][$i]);
+				}
+				die();
+			}
+		}
+		elseif (isset(COMMAND['w'])) {
+			if (is_string(COMMAND['w'])) {
+				if (file_exists(COMMAND['w'])) {
+					if (is_file(COMMAND['w'])) {
+						$wordlines = file(COMMAND['w']);
+
+						if (count($wordlines) === 0) {
+							printf("\r %s \e[0;31m%s\e[0m %s\n", '-w', COMMAND['w'], ') This file is empty');
+							die();
+						}
+					}
+					else {
+						printf("\r %s \e[0;31m%s\e[0m %s\n", '-w', COMMAND['w'], ') This is not a file');
+						die();
+					}
+				}
+				else {
+					printf("\r %s \e[0;31m%s\e[0m %s\n", '-w', COMMAND['w'], ') This file does not exist');
+					die();
+				}
+			}
+			else {
+				printf("\r%s\n", 'There are more of these than I should:');
+				for ($i = 0; $i < count(COMMAND['w']); $i++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '-w', COMMAND['w'][$i]);
+				}
+				die();
+			}
+		}
+
+		if (isset(COMMAND['proxy']) || isset(COMMAND['p'])) {
+			if (isset(COMMAND['proxy'])) {
+				$proxy = COMMAND['proxy'];
+			}
+			else {
+				$proxy = COMMAND['p'];
+			}
+
+			$use_proxy = true;
+			$proxy = str_replace(['//', '/', '@'], ['', '', ':'], $proxy);
+			$proxy = explode(':', $proxy);
+
+			$p = 0;
+			if (count($proxy) === 5) {
+				$use_proxy_user_pass = true;
+				$p = 2;
+			}
+
+			$proxy_server[0] = @fsockopen($proxy[1 + $p], $proxy[2 + $p], $errno, $errstr, 3);
+			if (is_resource($proxy_server[0])) {
+				$proxy_server[1] = @fsockopen($proxy[1 + $p], $proxy[2 + $p], $errno, $errstr, 3);
+				if (is_resource($proxy_server[1])) {
+					fclose($proxy_server[1]);
+				}
+				else {
+					printf(" %s\n", 'Proxy Server not running');
+					die();
+				}
+				fclose($proxy_server[0]);
+			}
+			else {
+				printf(" %s\n", 'Proxy Server not running');
+				die();
+			}
+		}
+
+		if (isset(COMMAND['thread']) || isset(COMMAND['t'])) {
+			if (isset(COMMAND['thread'])) {
+				if (is_string(COMMAND['thread'])) {
+					$multi = intval(COMMAND['thread']);
+				}
+				else {
+					printf("\r%s\n", 'There are more of these than I should:');
+					for ($i = 0; $i < count(COMMAND['thread']); $i++) {
+						printf(" %s \e[0;31m%s\e[0m\n", '--thread', COMMAND['thread'][$i]);
+					}
+					die();
+				}
+			}
+			elseif (isset(COMMAND['t'])) {
+				if (is_string(COMMAND['t'])) {
+					$multi = intval(COMMAND['t']);
+				}
+				else {
+					printf("\r%s\n", 'There are more of these than I should:');
+					for ($i = 0; $i < count(COMMAND['t']); $i++) {
+						printf(" %s \e[0;31m%s\e[0m\n", '-t', COMMAND['t'][$i]);
+					}
+					die();
+				}
+			}
+		}
+		elseif (isset(COMMAND['sleep'])) {
+			$multi = intval(COMMAND['sleep']);
+		}
+		else {
+			$multi = intval($config['thread']);
+		}
+
+		if (isset(COMMAND['interface'])) {
+			if (is_array(COMMAND['interface'])) {
+				printf("\r%s\n", 'There are more of these than I should:');
+
+				for ($in = 0; $in < count(COMMAND['interface']); $in++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '--interface', COMMAND['interface'][$in]);
+				}
+
+				die();
+			}
+		}
+		elseif (isset(COMMAND['i'])) {
+			if (is_array(COMMAND['i'])) {
+				printf("\r%s\n", 'There are more of these than I should:');
+
+				for ($in = 0; $in < count(COMMAND['i']); $in++) {
+					printf(" %s \e[0;31m%s\e[0m\n", '-i', COMMAND['i'][$in]);
+				}
+
+				die();
+			}
+		}
+
+		if (isset(COMMAND['test'])) {
+			$wordlines = [
+				'',
+				'x',
+				'admin',
+				'curlfuzzer',
+			];
+
+			$multi = 1;
+		}
+
+		if (isset(COMMAND['uniq']) || isset(COMMAND['q'])) {
+			$wordlines = array_unique($wordlines);
+			$wordlines = array_values($wordlines);
+		}
+
+		if (isset(COMMAND['sort']) || isset(COMMAND['s'])) {
+			sort($wordlines);
+		}
+
+		$wordlines = array_map('rtrim', $wordlines);
+
+		foreach (preg_grep('/^#!comment:.*\b/', $wordlines) as $a => $del) {
+			unset($wordlines[$a]);
+		}
+
+		$wordlines = array_values($wordlines);
+
+		$wordcount = count($wordlines);
+
+		if ($multi > $wordcount) {
+			$multi = $wordcount;
+		}
+
+		if (isset(COMMAND['st']) || isset(COMMAND['bt'])) {
+			$multi = 1;
+		}
+
+		$cf = [];
+		if (isset(COMMAND['report'])) {
+			$report = fopen(COMMAND['report'], 'w');
+		}
+
+		array_push($cf, sprintf("%s\n", '╶─╼ cURL Fuzzer v.1 ╾───────────────────────────────────────────────────────────────────╴'));
+
+		if (!isset($data) && !isset(COMMAND['method']) && !isset(COMMAND['X'])) {
+			array_push($cf, sprintf("%s\n", ' + Method           : GET'));
+		}
+		elseif (isset($data) && !isset(COMMAND['method']) && !isset(COMMAND['X'])) {
+			array_push($cf, sprintf("%s\n", ' + Method           : POST'));
+		}
+		elseif (isset(COMMAND['method'])) {
+			array_push($cf, sprintf("%s\n", ' + Method           : ' . COMMAND['method']));
+
+			$method = COMMAND['method'];
+
+			if ($method_fuzz = is_integer($number = preg_match_all('/FUZZ/', $mathod))) {
+				$valute = 'true';
+			}
+			else {
+				$valute = 'false';
+			}
+
+			for ($n = 0; $n < $number; $n++) {
+				array_push($fuzz, $valute);
+			}
+
+			if ($number === 0) {
+				$method_fuzz = false;
+			}
+		}
+		elseif (isset(COMMAND['X'])) {
+			array_push($cf, sprintf("%s\n", ' + Method           : ' . COMMAND['X']));
+
+			$method = COMMAND['X'];
+
+			if ($method_fuzz = is_integer($number = preg_match_all('/FUZZ/', $method))) {
+				$valute = 'true';
+			}
+			else {
+				$valute = 'false';
+			}
+
+			for ($n = 0; $n < $number; $n++) {
+				array_push($fuzz, $valute);
+			}
+
+			if ($number === 0) {
+				$method_fuzz = false;
+			}
+		}
+
+		array_push($cf, sprintf("%s\n", ' + Url              : ' . $url));
+
+		if (isset($data)) {
+			array_push($cf, sprintf("%s\n", ' + Data             : ' . $data));
+		}
+
+		if (isset(COMMAND['w'])) {
+			array_push($cf, sprintf("%s\n", ' + Wordlist         : ' . COMMAND['w']));
+		}
+		elseif (isset(COMMAND['wordlist'])) {
+			array_push($cf, sprintf("%s\n", ' + Wordlist         : ' . COMMAND['wordlist']));
+		}
+
+		if (isset(COMMAND['user-agent'])) {
+			$user_agent = COMMAND['user-agent'];
+
+			if ($user_agent === 'android') {
+				$user_agent = $config['user-agent']['android'];
+			}
+			elseif ($user_agent === 'ios') {
+				$user_agent = $config['user-agent']['ios'];
+			}
+			elseif ($user_agent === 'firefox') {
+				$user_agent = $config['user-agent']['firefox'];
+			}
+
+			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
+
+			if ($user_agent_fuzz = is_integer($number = preg_match_all('/FUZZ/', $user_agent))) {
+				$valute = 'true';
+			}
+			else {
+				$valute = 'false';
+			}
+
+			for ($n = 0; $n < $number; $n++) {
+				array_push($fuzz, $valute);
+			}
+
+			if ($number === 0) {
+				$user_agent_fuzz = false;
+			}
+		}
+		elseif (isset(COMMAND['A'])) {
+			$user_agent = COMMAND['A'];
+
+			if ($user_agent === 'android') {
+				$user_agent = $config['user-agent']['android'];
+			}
+			elseif ($user_agent === 'ios') {
+				$user_agent = $config['user-agent']['ios'];
+			}
+			elseif ($user_agent === 'firefox') {
+				$user_agent = $config['user-agent']['firefox'];
+			}
+
+			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
+
+			if ($user_agent_fuzz = is_integer($number = preg_match_all('/FUZZ/', $user_agent))) {
+				$valute = 'true';
+			}
+			else {
+				$valute = 'false';
+			}
+
+			for ($n = 0; $n < $number; $n++) {
+				array_push($fuzz, $valute);
+			}
+
+			if ($number === 0) {
+				$user_agent_fuzz = false;
+			}
+		}
+		else {
+			array_push($cf, sprintf("%s\n", ' + User-Agent       : PHP cURL WebFuzzer'));
+		}
+
+		array_push($cf, sprintf("%s\n", ' + Accept-Encoding  : gzip, deflate'));
+		array_push($cf, sprintf("%s\n", ' + Accept           : */*'));
+		array_push($cf, sprintf("%s\n", ' + Connection       : close'));
+
+		if (isset($json) && $json) {
+			array_push($cf, sprintf("%s\n", ' + Content-Type     : application/json'));
+		}
+		elseif (isset($data_fuzz) && $data_fuzz || isset($method) && $method === 'POST') {
+			array_push($cf, sprintf("%s\n", ' + Content-Type     : application/x-www-form-urlencoded'));
+		}
+
+		if (isset(COMMAND['header']) || isset(COMMAND['H'])) {
+			if (isset(COMMAND['header'])) {
+				$header = COMMAND['header'];
+			}
+
+			if (isset(COMMAND['H'])) {
+				$header = COMMAND['H'];
+			}
+
+			if (is_string($header)) {
+				array_push($cf, sprintf("%s\n", ' + Header           : ' . $header));
+
+				if ($header_fuzz = is_integer($number = preg_match_all('/FUZZ/', $header))) {
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === false) {
+					$header_fuzz = false;
+				}
+			}
+
+			if (is_array($header)) {
+				for ($h = 0; $h < count($header); $h++) {
+					array_push($cf, sprintf("%s\n", ' + Header           : ' . $header[$h]));
+				}
+
+				if (count($h_fuzz = preg_grep('/FUZZ/', $header)) > 0) {
+					foreach ($h_fuzz as $hfc) {
+						if ($header_fuzz = is_integer($number = preg_match_all('/FUZZ/', $hfc))) {
+							$valute = 'true';
+						}
+						else {
+							$valute = 'false';
+						}
+
+						for ($n = 0; $n < $number; $n++) {
+							array_push($fuzz, $valute);
+						}
+
+						if ($number === false) {
+							$header_fuzz = false;
+						}
+					}
+				}
+				else {
+					$valute = 'false';
+					$header_fuzz = false;
+					array_push($fuzz, $valute);
+				}
+			}
+
+			$use_header = true;
+		}
+
+		if (isset(COMMAND['cookie']) || isset(COMMAND['b'])) {
+			if (isset(COMMAND['cookie'])) {
+				$cookie = COMMAND['cookie'];
+			}
+
+			if (isset(COMMAND['b'])) {
+				$cookie = COMMAND['b'];
+			}
+
+			if (is_string($cookie)) {
+				array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie));
+
+				if ($cookie_fuzz = is_integer($number = preg_match_all('/FUZZ/', $cookie))) {
+					$valute = 'true';
+				}
+				else {
+					$valute = 'false';
+				}
+
+				for ($n = 0; $n < $number; $n++) {
+					array_push($fuzz, $valute);
+				}
+
+				if ($number === false) {
+					$cookie_fuzz = false;
+				}
+			}
+
+			if (is_array($cookie)) {
+				for ($c = 0; $c < count($cookie); $c++) {
+					array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie[$c]));
+				}
+
+				if (count($c_fuzz = preg_grep('/FUZZ/', $cookie)) > 0) {
+					foreach ($c_fuzz as $cfc) {
+						if ($config_fuzz = is_integer($number = preg_match_all('/FUZZ/', $cfc))) {
+							$valute = 'true';
+						}
+						else {
+							$valute = 'false';
+						}
+
+						for ($n = 0; $n < $number; $n++) {
+							array_push($fuzz, $valute);
+						}
+
+						if ($number === false) {
+							$cookie_fuzz = false;
+						}
+					}
+				}
+				else {
+					$valute = 'false';
+					$cookie_fuzz = false;
+					array_push($fuzz, $valute);
+				}
+			}
+
+			$use_cookie = true;
+		}
+
+		if (isset(COMMAND['timeout'])) {
+			array_push($cf, sprintf("%s\n", ' + Timeout          : ' . COMMAND['timeout']));
+		}
+		else {
+			array_push($cf, sprintf("%s\n", ' + Timeout          : 10' ));
+		}
+
+		array_push($cf, sprintf("%s\n", ' + Threads          : ' . $multi));
+
+		$show_or_hide_arr = preg_grep('/--(h|s|b).\b/', $argv);
+		$show_or_hide_arr = array_unique($show_or_hide_arr);
+		$show_or_hide_arr = array_values($show_or_hide_arr);
+
+		foreach($show_or_hide_arr as $show_or_hide) {
+			$command = @COMMAND[str_replace('-', '', $show_or_hide)];
+
+			if (!is_null($command)) {
+				if (is_string(COMMAND[str_replace('-', '', $show_or_hide)])) {
+
+					switch ($show_or_hide[2]) {
+						case 's':
+							$soh = 'Show';
+							break;
+						case 'h':
+							$soh = 'Hide';
+					}
+
+					switch ($show_or_hide[3]) {
+						case 'c':
+							$soh = $soh . ' Status';
+							break;
+						case 'l':
+							$soh = $soh . ' Lines';
+							break;
+						case 'w':
+							$soh = $soh . ' Words';
+							break;
+						case 'L':
+							$soh = $soh . ' Length';
+							break;
+						case 's':
+							$soh = $soh . ' Size';
+							break;
+						case 'f':
+							$soh = $soh . ' String';
+							break;
+						case 't':
+							switch ($soh) {
+								case 'Show':
+									$soh = 'Smaller Time';
+									break;
+								case 'Hide':
+									$soh = 'Bigger Time';
+									break;
+							}
+					}
+
+					array_push($cf, sprintf("%-20s: %s\n", ' + ' . $soh, str_replace(',', ', ', COMMAND[str_replace('-', '', $show_or_hide)])));
+
+					unset($soh);
+					unset($show_or_hide);
+				}
+				else {
+					foreach(COMMAND[str_replace('-', '', $show_or_hide)] as $soh_valute) {
+						switch ($show_or_hide[2]) {
+							case 's':
+								$soh = 'Show';
+								break;
+							case 'h':
+								$soh = 'Hide';
+						}
+
+						switch ($show_or_hide[3]) {
+							case 'c':
+								$soh = $soh . ' Status';
+								break;
+							case 'l':
+								$soh = $soh . ' Lines';
+								break;
+							case 'w':
+								$soh = $soh . ' Words';
+								break;
+							case 'L':
+								$soh = $soh . ' Length';
+								break;
+							case 's':
+								$soh = $soh . ' Size';
+								break;
+							case 'f':
+								$soh = $soh . ' String';
+								break;
+							case 't':
+								switch ($soh) {
+									case 'Show':
+										$soh = 'Smaller Time';
+										break;
+									case 'Hide':
+										$soh = 'Bigger Time';
+										break;
+								}
+						}
+
+						array_push($cf, sprintf("%-20s: %s\n", ' + ' . $soh, $soh_valute));
+					}
+
+					unset($soh);
+					unset($show_or_hide);
+				}
+			}
+		}
+
+		if (isset(COMMAND['reflect']) || isset(COMMAND['r'])) {
+			array_push($cf, sprintf("%s\n", ' + Reflect          : True'));
+		}
+
+		if (isset($use_proxy)) {
+			array_push($cf, sprintf("%s\n", ' + Proxy            : ' . $proxy[0] . '://' . $proxy[1 - $p] . ':' . $proxy[2 - $p] . '/'));
+		}
+
+		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde/', array_keys(COMMAND));
+		$crypto = array_values($crypto);
+
+		foreach ($crypto as $cry) {
+			switch ($cry) {
+				case 'lower':
+					$wordlines = array_map('strtolower', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToLower       : True'));
+					break;
+				case 'upper':
+					$wordlines = array_map('strtoupper', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToUpper       : True'));
+					break;
+				case 'b64d':
+					$wordlines = array_map('base64_decode', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + Base64ToStr      : True'));
+					break;
+				case 'b64e':
+					$wordlines = array_map('base64_encode', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToBase64      : True'));
+					break;
+				case 'hex':
+					$wordlines = array_map('bin2hex', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToHex         : True'));
+					break;
+				case 'urlde':
+					$wordlines = array_map('urldecode', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + UrlToStr         : True'));
+					break;
+				case 'urlen':
+					$wordlines = array_map('urlencode', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToUrl         : True'));
+					break;
+			}
+		}
+
+		unset($cry);
+		unset($crypto);
+
+		array_push($cf, sprintf("%s\n", '╶───────────────────────────────────────────────────────────────────────────────────────╴'));
+
+		$fuzz = count(preg_grep('/true/', $fuzz));
+
+		if ($fuzz !== 1) {
+			if ($fuzz < 1) {
+				printf(" %s\n", 'FUZZ param is not set');
+			}
+			else {
+				printf(" %s\n", $fuzz . ' FUZZ param');
+			}
+
+			die();
+		}
+		else {
+			unset($fuzz);
+			foreach ($cf as $head) {
+				printf("%s", $head);
+
+				if (isset(COMMAND['report'])) {
+					fwrite($report, $head);
+				}
+			}
+
+			unset($head);
+		}
+
+		if ($multi > 400) {
+			printf(" %s\n", 'Max Thread number: 400');
+			die();
+		}
+
+		unset($n);
+		unset($cf);
+		unset($number);
+		unset($valute);
+		unset($command);
+
+		$url_parse = parse_url($url);
+
+		if (!boolval(preg_match_all('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}+$/', $url_parse['host']))) {
+			$add = gethostbyname($url_parse['host']);
+			$url = str_replace($url_parse['host'], $add, $url);
+		}
+
+		if (isset(COMMAND['verbose'])) {
+			$verbose_log = fopen($_SERVER['HOME'] . '/.config/curlfuzzer/verbose.log', 'w');
+		}
+
+		$start_time = microtime(true);
+		$i = $m = $errors = 0;
+		while ($i < $wordcount) {
+			$j = $k = $l = 0;
+			while ($j < $multi && ($i + $j) < $wordcount) {
+				$http_request  = 'http_request';
+				$$http_request = 'http_request' . $j;
+
+				$http_payload  = 'http_payload';
+				$$http_payload = 'http_payload' . $i;
+				$$http_payload = $wordlines[$i + $j];
+
+				$http_request_header = [
+					'Host: ' . $url_parse['host'],
+					'Accept: */*',
+					'Connection: close',
+					'Expect: ',
+				];
+
+				if (isset($url_fuzz) && $url_fuzz) {
+					$attack_url = str_replace('FUZZ', urlencode($$http_payload), $url);
+				}
+				else {
+					$attack_url = $url;
+				}
+
+				if (isset($data_fuzz) && $data_fuzz) {
+					$attack_data = str_replace('FUZZ', urlencode($$http_payload), $data);
+					array_push($http_request_header, 'Content-Length: ' . strlen($attack_data));
+				}
+				else {
+					if (isset($data)) {
+						$attack_data = $data;
+					}
+				}
+
+				$$http_request = curl_init();
+				curl_setopt($$http_request, CURLOPT_URL, $attack_url);
+
+				if (isset($use_header) && $use_header) {
+					if (is_string($header)) {
+						if (isset($header_fuzz) && $header_fuzz) {
+							$attack_header = str_replace('FUZZ', urlencode($$http_payload), $header);
+						}
+						else {
+							$attack_header = $header;
+						}
+						
+						array_push($http_request_header, $attack_header);
+					}
+
+					if (is_array($header)) {
+						for ($h = 0; $h < count($header); $h++) {
+							$attack_header = str_replace('FUZZ', urlencode($$http_payload), $header[$h]);
+							array_push($http_request_header, $attack_header);
+						}
+					}
+				}
+
+				curl_setopt($$http_request, CURLOPT_HTTPHEADER, $http_request_header);
+
+				if (isset($json) && $json) {
+					array_push($http_request_header, 'Content-Type: application/json');
+				}
+
+				if (isset(COMMAND['user-agent']) || isset(COMMAND['A'])) {
+					if (isset(COMMAND['user-agent'])) {
+						$user_agent = COMMAND['user-agent'];
+					}
+					elseif (isset(COMMAND['A'])) {
+						$user_agent = COMMAND['A'];
+					}
+
+					if (isset($user_agent_fuzz)) {
+						$user_agent = str_replace('FUZZ', $$http_payload, $user_agent);
+					}
+
+					if ($user_agent === 'android') {
+						$user_agent = $config['user-agent']['android'];
+					}
+					elseif ($user_agent === 'ios') {
+						$user_agent = $config['user-agent']['ios'];
+					}
+					elseif ($user_agent === 'firefox') {
+						$user_agent = $config['user-agent']['firefox'];
+					}
+
+					curl_setopt($$http_request, CURLOPT_USERAGENT, $user_agent);
+				}
+				else {
+					curl_setopt($$http_request, CURLOPT_USERAGENT, 'PHP cURL WebFuzzer');
+				}
+
+				if (isset(COMMAND['method']) || isset(COMMAND['X'])) {
+					if (isset(COMMAND['method'])) {
+						$method = COMMAND['method'];
+					}
+					elseif (isset(COMMAND['X'])) {
+						$method = COMMAND['X'];
+					}
+
+					if (isset($method_fuzz) && $method_fuzz) {
+						$attack_method = str_replace('FUZZ', urlencode($$http_payload), $method);
+					}
+					else {
+						$attack_method = $method;
+					}
+
+					if ($attack_method === 'GET') {
+						curl_setopt($$http_request, CURLOPT_HTTPGET, true);
+					}
+					elseif ($attack_method === 'POST') {
+						curl_setopt($$http_request, CURLOPT_POST, true);
+					}
+					elseif ($attack_method === 'PUT') {
+						curl_setopt($$http_request, CURLOPT_PUT, true);
+					}
+					else {
+						curl_setopt($$http_request, CURLOPT_CUSTOMREQUEST, $attack_method);
+					}
+				}
+
+				if (isset($data_fuzz) && $data_fuzz || isset($attack_data)) {
+					curl_setopt($$http_request, CURLOPT_POSTFIELDS, $attack_data);
+				}
+
+				if (isset($use_proxy) && $use_proxy) {
+					if ($proxy[0] === 'http') {
+						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+					}
+					elseif ($proxy[0] === 'https') {
+						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_HTTPS);
+					}
+					elseif ($proxy[0] === 'socks4') {
+						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
+					}
+					elseif ($proxy[0] === 'socks4a') {
+						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4A);
+					}
+					elseif ($proxy[0] === 'socks5') {
+						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
+					}
+					else {
+						printf(" %s\n", 'Invalid Proxy Type');
+						die();
+					}
+
+					if (isset($use_proxy_user_pass) && $use_proxy_user_pass) {
+						curl_setopt($$http_request, CURLOPT_PROXYUSERPWD, $proxy[1] . ':' . $proxy[2]);
+					}
+
+					curl_setopt($$http_request, CURLOPT_PROXY, $proxy[1 + $p]);
+					curl_setopt($$http_request, CURLOPT_PROXYPORT, $proxy[2 + $p]);
+					curl_setopt($$http_request, CURLOPT_PROXYHEADER, ['Proxy-Connection:']);
+				}
+
+				if (isset($use_cookie) && $use_cookie) {
+					if (is_string($cookie)) {
+						if (isset($cookie_fuzz) && $cookie_fuzz) {
+							$attack_cookie = str_replace('FUZZ', urlencode($$http_payload), $cookie);
+						}
+						else {
+							$attack_cookie = $cookie;
+						}
+					}
+
+					if (is_array($cookie)) {
+						for ($c = 0; $c < count($cookie); $c++) {
+							$attack_cookie = str_replace('FUZZ', urlencode($$http_payload), $cookie[$c]);
+							$attack_cookie = $attack_cookie . '; ' . $attack_cookie;
+						}
+					}
+
+					curl_setopt($$http_request, CURLOPT_COOKIE, $attack_cookie);
+				}
+
+				if (isset(COMMAND['cacert'])) {
+					curl_setopt($$http_request, CURLOPT_CAINFO, COMMAND['cacert']);
+				}
+
+				if (isset(COMMAND['insecure'])) {
+					curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, false);
+					curl_setopt($$http_request, CURLOPT_SSL_VERIFYPEER, false);
+				}
+				else {
+					curl_setopt($$http_request, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+					curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, 2);
+					curl_setopt($$http_request, CURLOPT_SSL_VERIFYPEER, true);
+					curl_setopt($$http_request, CURLOPT_SSL_VERIFYSTATUS, true);
+					curl_setopt($$http_request, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+					curl_setopt($$http_request, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+				}
+
+				if (isset(COMMAND['http1.0'])) {
+					curl_setopt($$http_request, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+				}
+				elseif (isset(COMMAND['http1.1'])) {
+					curl_setopt($$http_request, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+				}
+				elseif (isset(COMMAND['http2'])) {
+					curl_setopt($$http_request, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2);
+				}
+				elseif (isset(COMMAND['http2pk'])) {
+					curl_setopt($$http_request, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE);
+				}
+
+				if (isset(COMMAND['timeout'])) {
+					curl_setopt($$http_request, CURLOPT_TIMEOUT, intval(COMMAND['timeout']));
+				}
+
+				if (isset(COMMAND['verbose'])) {
+					curl_setopt($$http_request, CURLOPT_VERBOSE, true);
+					curl_setopt($$http_request, CURLOPT_STDERR, $verbose_log);
+				}
+				else {
+					curl_setopt($$http_request, CURLINFO_HEADER_OUT, true);
+				}
+
+				curl_setopt($$http_request, CURLOPT_TCP_KEEPALIVE, false);
+				curl_setopt($$http_request, CURLOPT_MAXREDIRS, 5);
+				curl_setopt($$http_request, CURLOPT_AUTOREFERER, true);
+				curl_setopt($$http_request, CURLOPT_FORBID_REUSE, true);
+				curl_setopt($$http_request, CURLOPT_EXPECT_100_TIMEOUT_MS, 10);
+				curl_setopt($$http_request, CURLOPT_DNS_CACHE_TIMEOUT, 10);
+				curl_setopt($$http_request, CURLOPT_DNS_SHUFFLE_ADDRESSES, true);
+				curl_setopt($$http_request, CURLOPT_TCP_NODELAY, true);
+				curl_setopt($$http_request, CURLOPT_ENCODING, 'gzip, deflate');
+				curl_setopt($$http_request, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+				curl_setopt($$http_request, CURLOPT_NOPROGRESS, true);
+				curl_setopt($$http_request, CURLOPT_TCP_FASTOPEN, true);
+				curl_setopt($$http_request, CURLOPT_HEADER, true);
+				curl_setopt($$http_request, CURLOPT_RETURNTRANSFER, true);
+
+				if ($url_parse['scheme'] === 'http') {
+					curl_setopt($$http_request, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
+				}
+				elseif ($url_parse['scheme'] === 'https') {
+					curl_setopt($$http_request, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+				}
+
+				if (isset(COMMAND['interface']) xor isset(COMMAND['i'])) {
+					if (isset(COMMAND['interface'])) {
+						curl_setopt($$http_request, CURLOPT_INTERFACE, COMMAND['interface']);
+					}
+					elseif (isset(COMMAND['i'])) {
+						curl_setopt($$http_request, CURLOPT_INTERFACE, COMMAND['i']);
+					}
+				}
+
+				unset($attack_url);
+				unset($attack_data);
+				unset($attack_cookie);
+				unset($attack_header);
+				unset($http_request_header);
+
+				$j = $j + 1;
+			}
+
+			if (!isset($multi_tread)) {
+				$multi_tread = curl_multi_init();
+				curl_multi_setopt($multi_tread, CURLMOPT_MAXCONNECTS, 50);
+			}
+
+			while ($k < $multi && ($i + $k) < $wordcount) {
+				$http_request  = 'http_request';
+				$$http_request = 'http_request' . $k;
+				curl_multi_add_handle($multi_tread, $$http_request);
+
+				$k = $k + 1;
+			}
+
+			$sleep = 0;
+			do {
+				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);
+				$hours     = floor($diff_time / 3600);
+				$minutes   = floor(($diff_time - ($hours * 3600)) / 60);
+				$seconds   = floor($diff_time - ($hours * 3600) - ($minutes * 60));
+				$runtime   = sprintf("%02s:%02s:%02s", $hours, $minutes, $seconds);
+
+				if (isset(COMMAND['sleep']) && $sleep === 0) {
+					if (!isset($send)) {
+						$send = 0;
+					}
+
+					printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+
+					sleep(1);
+					$sleep++;
+				}
+
+				$status = curl_multi_exec($multi_tread, $active);
+
+				if (($multi - $active) + $i > $wordcount) {
+					$send = $wordcount;
+				}
+				else {
+					$send = ($multi - $active) + $i;
+				}
+
+				printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+
+				if ($active > 0) {
+					curl_multi_select($multi_tread, 0.1);
+				}
+
+				if ($active < 1) {
+					break;
+				}
+			} while ($active && $status === CURLE_OK);
+
+			while ($l < $multi && ($i + $l) < $wordcount) {
+				$m++;
+				$http_request  = 'http_request';
+				$$http_request = 'http_request' . $l;
+
+				$http_payload  = 'http_payload';
+				$$http_payload = 'http_payload' . $l;
+				$$http_payload = $wordlines[$i + $l];
+
+				$http_response_info = curl_getinfo($$http_request);
+				$status = intval($http_response_info['http_code']);
+				$size   = intval($http_response_info['size_download']);
+				$time   = substr(strval($http_response_info['total_time'] * 1000), 0, 6);
+				//$time   = curl_getinfo($$http_request, CURLINFO_CONNECT_TIME_T);
+
+				$http_response = curl_multi_getcontent($$http_request);
+
+				$length = strlen($http_response);
+				preg_match_all('/[^\s]+/mi', $http_response, $words, PREG_SET_ORDER);
+				//preg_match_all('/^Set-Cookie:\s*([^;]*);/mi', $http_response, $cookie);
+				$words  = count($words);
+				$lines  = count(explode("\n", $http_response));
+
+				if ($status !== 0) {
+					if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
+						if (isset($url_fuzz) && $url_fuzz) {
+							if (isset($add)) {
+								$$http_payload = str_replace('FUZZ', $$http_payload, str_replace($add, $url_parse['host'], $url));
+							}
+							else {
+								$$http_payload = str_replace('FUZZ', $$http_payload, $url);
+							}
+						}
+						elseif (isset($data_fuzz) && $data_fuzz) {
+							$$http_payload = str_replace('FUZZ', $$http_payload, $data);
+						}
+						elseif (isset($method_fuzz) && $method_fuzz) {
+							$$http_payload = str_replace('FUZZ', $$http_payload, $method);
+						}
+						elseif (isset($cookie_fuzz) && $cookie_fuzz) {
+							$$http_payload = str_replace('FUZZ', $$http_payload, $cookie);
+						}
+						elseif (isset($header_fuzz) && $header_fuzz && is_string($header)) {
+							$$http_payload = str_replace('FUZZ', $$http_payload, $header);
+						}
+					}
+
+					$display = [
+						'show' => [],
+						'hide' => [],
+					];
+
+					if (isset(COMMAND['reflect']) || isset(COMMAND['r'])) {
+						if (!empty($$http_payload)) {
+							if (is_integer(strpos($http_response, $$http_payload))) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+					}
+
+					if (isset(COMMAND['sf'])) {
+						$show_filter = COMMAND['sf'];
+
+						if (is_string($show_filter)) {
+							if (is_integer(strpos($show_filter, ','))) {
+								$show_filter = explode(',', $show_filter);
+							}
+						}
+
+						if (is_string($show_filter)) {
+							if (is_integer(strpos($http_response, $show_filter))) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_filter as $sf) {
+								if (is_integer(strpos($http_response, $sf))) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_filter);
+					}
+
+					if (isset(COMMAND['hf'])) {
+						$hide_filter = COMMAND['hf'];
+
+						if (is_string($hide_filter)) {
+							if (is_integer(strpos($hide_filter, ','))) {
+								$hide_filter = explode(',', $hide_filter);
+							}
+						}
+
+						if (is_string($hide_filter)) {
+							if (is_integer(strpos($http_response, $hide_filter))) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_filter as $hf) {
+								if (is_integer(strpos($http_response, $hf))) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_string);
+					}
+
+					if (isset(COMMAND['sc'])) {
+						$show_code = COMMAND['sc'];
+
+						if (is_string($show_code)) {
+							if (is_integer(strpos($show_code, ','))) {
+								$show_code = explode(',', $show_code);
+							}
+						}
+
+						if (is_string($show_code)) {
+							if (intval($show_code) === $status) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_code as $ssc) {
+								if (intval($ssc) === $status) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_code);
+					}
+
+					if (isset(COMMAND['hc'])) {
+						$hide_code = COMMAND['hc'];
+
+						if (is_string($hide_code = COMMAND['hc'])) {
+							if (is_integer(strpos($hide_code, ','))) {
+								$hide_code = explode(',', $hide_code);
+							}
+						}
+
+						if (is_string($hide_code)) {
+							if (intval($hide_code) === $status) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_code as $hc) {
+								if (intval($hc) === $status) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_code);
+					}
+
+					if (isset(COMMAND['ss'])) {
+						$show_size = COMMAND['ss'];
+
+						if (is_string($show_size)) {
+							if (is_integer(strpos($show_size, ','))) {
+								$show_size = explode(',', $show_size);
+							}
+						}
+
+						if (is_string($show_size)) {
+							if (intval($show_size) === $size) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_size as $ss) {
+								if (intval($ss) === $size) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_size);
+					}
+
+					if (isset(COMMAND['hs'])) {
+						$hide_size = COMMAND['hs'];
+
+						if (is_string($hide_size)) {
+							if (is_integer(strpos($hide_size, ','))) {
+								$hide_size = explode(',', $hide_size);
+							}
+						}
+
+						if (is_string($hide_size)) {
+							if (intval($hide_size) === $size) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_size as $hs) {
+								if (intval($hs) === $size) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_size);
+					}
+
+					if (isset(COMMAND['sl'])) {
+						$show_line = COMMAND['sl'];
+
+						if (is_string($show_line)) {
+							if (is_integer(strpos($show_line, ','))) {
+								$show_line = explode(',', $show_line);
+							}
+						}
+
+						if (is_string($show_line)) {
+							if (intval($show_line) === $lines) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_line as $sl) {
+								if (intval($sl) === $lines) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_line);
+					}
+
+					if (isset(COMMAND['hl'])) {
+						$hide_line = COMMAND['hl'];
+
+						if (is_string($hide_line)) {
+							if (is_integer(strpos($hide_line, ','))) {
+								$hide_line = explode(',', $hide_line);
+							}
+						}
+
+						if (is_string($hide_line)) {
+							if (intval($hide_line) === $lines) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_line as $hl) {
+								if (intval($hl) === $lines) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_line);
+					}
+
+					if (isset(COMMAND['sw'])) {
+						$show_word = COMMAND['sw'];
+
+						if (is_string($show_word)) {
+							if (is_integer(strpos($show_word, 'y'))) {
+								$show_word = explode(',', $show_word);
+							}
+						}
+
+						if (is_string($show_word)) {
+							if (intval($show_word) === $words) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_word as $sw) {
+								if (intval($sw) === $words) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_word);
+					}
+
+					if (isset(COMMAND['hw'])) {
+						$hide_word = COMMAND['hw'];
+
+						if (is_string($hide_word)) {
+							if (is_integer(strpos($hide_word, ','))) {
+								$hide_word = explode(',', $hide_word);
+							}
+						}
+
+						if (is_string($hide_word)) {
+							if (intval($hide_word) === $words) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_word as $hw) {
+								if (intval($hw) === $words) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_word);
+					}
+
+					if (isset(COMMAND['sL'])) {
+						$show_length = COMMAND['sL'];
+
+						if (is_string($show_length)) {
+							if (is_integer(strpos($show_length, ','))) {
+								$show_length = explode(',', $show_length);
+							}
+						}
+
+						if (is_string($show_length)) {
+							if (intval($show_length) === $length) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_length as $sL) {
+								if (intval($sL) === $length) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_length);
+					}
+
+					if (isset(COMMAND['hL'])) {
+						$hide_length = COMMAND['hL'];
+
+						if (is_string($hide_length)) {
+							if (is_integer(strpos($hide_length, ','))) {
+								$hide_length = explode(',', $hide_length);
+							}
+						}
+
+						if (is_string($hide_length)) {
+							if (intval($hide_length) === $length) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_length as $hL) {
+								if (intval($hL) === $length) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_length);
+					}
+
+					if (isset(COMMAND['st'])) {
+						$show_time = COMMAND['st'];
+
+						if (is_string($show_time)) {
+							if (is_integer(strpos($show_time, ','))) {
+								$show_time = explode(',', $show_time);
+							}
+						}
+
+						if (is_string($show_time)) {
+							if (floatval($show_time) > $time) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_time as $st) {
+								if (floatval($st) > $time) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_time);
+					}
+
+					if (isset(COMMAND['bt'])) {
+						$bigger_time = COMMAND['bt'];
+
+						if (is_string($bigger_time)) {
+							if (is_integer(strpos($bigger_time, ','))) {
+								$bigger_time = explode(',', $bigger_time);
+							}
+						}
+
+						if (is_string($bigger_time)) {
+							if (floatval($bigger_time) < $time) {
+								array_push($display['hide'], 'yes');
+							}
+							else {
+								array_push($display['hide'], 'no');
+							}
+						}
+						else {
+							foreach ($bigger_time as $bt) {
+								if (floatval($bt) < $time) {
+									array_push($display['hide'], 'yes');
+								}
+								else {
+									array_push($display['hide'], 'no');
+								}
+							}
+						}
+
+						unset($bigger_time);
+					}
+
+					$show = count(preg_grep('/yes/', $display['show']));
+					$hide = count(preg_grep('/no/',  $display['hide']));
+					$show_count = count($display['show']);
+					$hide_count = count($display['hide']);
+					unset($display);
+
+					$display = false;
+					if ($show_count !== 0 || $hide_count !== 0) {
+						if ($show_count === 0 && $hide_count >= 1) {
+							if ($hide === 0) {
+								$display = true;
+							}
+						}
+						elseif ($show_count >= 1 && $hide_count === 0) {
+							if ($show >= 1) {
+								$display = true;
+							}
+						}
+						elseif ($show_count >= 1 && $hide_count >= 1) {
+							if ($show >= 1 && $hide === 0) {
+								$display = true;
+							}
+						}
+					}
+					else {
+						$display = true;
+					}
+
+					unset($show_count);
+					unset($hide_count);
+					unset($show);
+					unset($hide);
+
+					if ($display) {
+						if (isset(COMMAND['report'])) {
+							fwrite($report, sprintf("\r %07s: %-43s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), $$http_payload, $status, $size, $lines, $words, $length, $time));
+						}
+
+						if (boolval(preg_match('/^1/', $status))) {
+							$status = "\e[0;36m" . $status . "\e[0m";
+						}
+						elseif (boolval(preg_match('/^2/', $status))) {
+							$status = "\e[0;32m" . $status . "\e[0m";
+						}
+						elseif (boolval(preg_match('/^3/', $status))) {
+							$status = "\e[0;34m" . $status . "\e[0m";
+						}
+						elseif (boolval(preg_match('/^4/', $status))) {
+							$status = "\e[0;31m" . $status . "\e[0m";
+						}
+						elseif (boolval(preg_match('/^5/', $status))) {
+							$status = "\e[0;35m" . $status . "\e[0m";
+						}
+
+						if (isset(COMMAND['right'])) {
+							printf("\r %07s: c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s %-43s\n", ($i + $l + 1), $status, $size, $lines, $words, $length, $time, "'" . $$http_payload . "'");
+						}
+						else {
+							printf("\r %07s: %-43s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
+						}
+
+						if (isset(COMMAND['req-report']) && !isset(COMMAND['verbose'])) {
+							if (!file_exists('req-report')) {
+								mkdir('req-report');
+							}
+
+							$request = fopen('req-report/request_' . sprintf("%+0" . strlen($wordcount) . "s", ($i + $l + 1)) . '.txt', 'w');
+
+							fwrite($request, $http_response_info['request_header']);
+
+							if (isset($use_data) && $use_data) {
+								if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
+									if (isset($data_fuzz) && $data_fuzz) {
+										fwrite($request, $$http_payload);
+									}
+									else {
+										fwrite($request, $data);
+									}
+								}
+								else {
+									if (isset($data_fuzz) && $data_fuzz) {
+										fwrite($request, str_replace('FUZZ', $$http_payload, $data));
+									}
+									else {
+										fwrite($request, $data);
+									}
+								}
+							}
+
+							fclose($request);
+						}
+
+						if (isset(COMMAND['res-report'])) {
+							if (!file_exists('res-report')) {
+								mkdir('res-report');
+							}
+
+							$response = fopen('res-report/response_' . sprintf("%+0" . strlen($wordcount) . "s", ($i + $l + 1)) . '.txt', 'w');
+							fwrite($response, $http_response);
+							fclose($response);
+						}
+					}
+				}
+				else {
+					$errors++;
+				}
+
+				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);
+				$hours     = floor($diff_time / 3600);
+				$minutes   = floor(($diff_time - ($hours * 3600)) / 60);
+				$seconds   = floor($diff_time - ($hours * 3600) - ($minutes * 60));
+				$runtime   = sprintf("%02s:%02s:%02s", $hours, $minutes, $seconds);
+
+				printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+
+				curl_multi_remove_handle($multi_tread, $$http_request);
+				curl_close($$http_request);
+
+				unset($diff_time);
+				unset($hours);
+				unset($minutes);
+				unset($seconds);
+				unset($runtime);
+				unset($$http_request);
+				unset($$http_payload);
+				unset($http_response_info);
+				unset($http_response);
+				unset($status);
+				unset($size);
+				unset($time);
+				unset($length);
+				unset($words);
+				unset($lines);
+				unset($display);
+				unset($active);
+
+				$l = $l + 1;
+			}
+
+			curl_multi_close($multi_tread);
+			unset($multi_tread);
+
+			$i = $i + $multi;
+		}
+
+		if (isset(COMMAND['verbose'])) {
+			fclose($verbose_log);
+		}
+
+		if (isset(COMMAND['report'])) {
+			fclose($report);
+		}
+
+		printf("%s\n", '');
+	}
+	else {
+		$helper = <<< 'END'
+		curlfuzzer by Anonymous Kali
+		Usage: curlfuzzer [OPTIONS]
+
+		  -u,   --url          string  : set target url
+		  -d,   --data         string  : POST data (format: foo=bar or {"foo":"bar"})
+		  -t,   --thread       integer : multi thread
+		        --timeout      integer : set timeout
+		  -X,   --method       string  : set request method
+		  -b,   --cookie       string  : set cookie
+		  -p,   --proxy        string  : set proxy (format: type://host:port/ or type://user@pass:host:port/)
+		                                             types: http, https, socks4a, socks<4-5>
+		  -H,   --header       string  : set request header
+		  -A,   --user-agent   string  : set costume user-agent or emulate android, ios, firefox header
+		  -i,   --interface    string  : set interface (You can not use it with a proxy)
+		        --cacert       string  : set cacert PEM, CER
+		        --insecure     null    : disables TLS certificate validation
+		        --http1.0      null    : use HTTP 1.0
+		        --http1.1      null    : use HTTP 1.1
+		        --http2        null    : use HTTP 2
+		        --http2pk      null    : use HTTP 2 without HTTP/1.1 Upgrade
+		  -q,   --uniq         null    : unique wordlist content
+		  -s,   --sort         null    : sort wordlist content
+		  -f,   --full         null    : full payload write
+
+		        --right        null    : Payload in right
+		  -r,   --reflect      null    : Reflect to payload
+		        --report       null    : make report
+		        --req-report   string  : report all request in file
+		        --res-report   null    : report all response
+		        --sleep        integer : x request / sec
+		        --test         null    : send 3 request
+		        --verbose      null    : verbose log
+
+		        --lower        null    : payload string lower
+		        --upper        null    : payload string upper
+		        --b64e         null    : payload string base64 encode
+		        --b64d         null    : payload string base64 decode
+		        --urlen        null    : payload string url encode
+		        --urlde        null    : payload string url decode
+		        --hex          null    : payload string to hexadecimal
+
+		  --sc, --hc           integer : Show/Hide response status code
+		  --sl, --hl           integer : Show/Hide response lines
+		  --sw, --hw           integer : Show/Hide response words
+		  --sL, --sL           integer : Show/Hide response length
+		  --ss, --hs           integer : Show/Hide response size
+		  --sf, --hf           string  : Show/Hide response str
+		  --st, --sb           float   : Smaller/Bigger time
+
+		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
+		Fuzz tag: FUZZ
+
+		ex:
+		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404
+		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --hc 404 --tread 200 --user-agent android
+		 - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'
+		 - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/
+		 - curlfuzzer --url 'http://example.com/' --wordlist words.txt --sc 200,204,301,302,307,401,403,405
+		END;
+
+		printf("%s\n", $helper);
+	}
+
+?>

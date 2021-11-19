@@ -1,6 +1,8 @@
 ## curlfuzzer
 curlfuzzer is a simple web fuzzer writed in php.
 
+<img src="curlfuzzer.png"></img>
+
 ### Install
 You will need to install php and php-curl library first
 ```

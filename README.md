@@ -7,7 +7,7 @@ curlfuzzer is a simple web fuzzer in php with curl library.
 You will need to install php and php-curl library first
 ```
 git clone https://github.com/kali69bazdmeg/curlfuzzer.git
-cd curlfuzzer/curlfuzzer /usr/local/bin/curlfuzzer
+cp curlfuzzer/curlfuzzer /usr/local/bin/curlfuzzer
 chmod +x /usr/local/bin/curlfuzzer
 ```
 ### Usage

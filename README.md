@@ -1,5 +1,5 @@
 ## curlfuzzer
-curlfuzzer is a simple web fuzzer writed in php.
+curlfuzzer is a simple web fuzzer in php with curl library.
 
 <img src="curlfuzzer.png"></img>
 

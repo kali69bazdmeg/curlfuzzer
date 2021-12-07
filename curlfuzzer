@@ -60,8 +60,8 @@
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
 		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
 
-		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'bt:',
-		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'st:',
+		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bt:',
+		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'st:',
 	]));
 
 	foreach ($gopt_str as $key => $opt) {
@@ -229,7 +229,7 @@
 			}
 		}
 
-		if (isset(COMMAND['wordlist'])) {
+		if (isset(COMMAND['wordlist']) && !isset(COMMAND['test'])) {
 			if (is_string(COMMAND['wordlist'])) {
 				if (file_exists(COMMAND['wordlist'])) {
 					if (is_file(COMMAND['wordlist'])) {
@@ -258,7 +258,7 @@
 				die();
 			}
 		}
-		elseif (isset(COMMAND['w'])) {
+		elseif (isset(COMMAND['w']) && !isset(COMMAND['test'])) {
 			if (is_string(COMMAND['w'])) {
 				if (file_exists(COMMAND['w'])) {
 					if (is_file(COMMAND['w'])) {
@@ -288,6 +288,9 @@
 			}
 		}
 
+		$url_parse = parse_url($url);
+		$url_parse['port'] = 80;
+
 		if (isset(COMMAND['proxy']) || isset(COMMAND['p'])) {
 			if (isset(COMMAND['proxy'])) {
 				$proxy = COMMAND['proxy'];
@@ -306,16 +309,56 @@
 				$p = 2;
 			}
 
-			$proxy_server[0] = @fsockopen($proxy[1 + $p], $proxy[2 + $p], $errno, $errstr, 3);
+			$proxy_server[0] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
 			if (is_resource($proxy_server[0])) {
-				$proxy_server[1] = @fsockopen($proxy[1 + $p], $proxy[2 + $p], $errno, $errstr, 3);
+				$proxy_server[1] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
+
 				if (is_resource($proxy_server[1])) {
+					/*
+					switch ($proxy[0]) {
+						case 'http':
+							fwrite($proxy_server[1], "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
+
+							if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server[1], 1024)) === 0) {
+								printf(" %s\n", 'This is not a http proxy server');
+								fclose($proxy_server[1]);
+								die();
+							}
+
+							break;
+						case 'socks4':
+							fwrite($proxy_server[1], "\04\01\00");
+
+							if (fread($proxy_server[1], 2) !== "\00\5a") {
+								printf(" %s\n", 'This is not a socks proxy server');
+								fclose($proxy_server[1]);
+								die();
+							}
+
+							break;
+						case 'socks5':
+							fwrite($proxy_server[1], "\05\01\00");
+
+							if (fread($proxy_server[1], 2) !== "\05\00") {
+								printf(" %s\n", 'This is not a socks5 proxy server');
+								fclose($proxy_server[1]);
+								die();
+							}
+
+							break;
+						default:
+							printf(" %s\n", 'Proxy Type not checked.');
+							fclose($proxy_server[1]);
+					}
+					 */
+
 					fclose($proxy_server[1]);
 				}
 				else {
 					printf(" %s\n", 'Proxy Server not running');
 					die();
 				}
+
 				fclose($proxy_server[0]);
 			}
 			else {
@@ -418,11 +461,45 @@
 			$multi = 1;
 		}
 
-		$cf = [];
 		if (isset(COMMAND['report'])) {
-			$report = fopen(COMMAND['report'], 'w');
+			$make_report = true;
+
+			if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/report.html')) {
+				$report_html = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.html');
+				if (!is_bool($report_html)) {
+					file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.html', $report_html);
+				}
+				else {
+					$make_report = false;
+				}
+			}
+
+			if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/report.css')) {
+				$report_css  = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.css');
+				if (!is_bool($report_css)) {
+					file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css', $report_css);
+				}
+				else {
+					$make_report = false;
+				}
+			}
+
+			if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/report.js')) {
+				$report_js   = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.js');
+				if (!is_bool($report_js)) {
+					file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.js', $report_js);
+				}
+				else {
+					$make_report = false;
+				}
+			}
+
+			if (isset($make_report) && $make_report) {
+				$report = fopen(COMMAND['report'], 'w');
+			}
 		}
 
+		$cf = [];
 		array_push($cf, sprintf("%s\n", '╶─╼ cURL Fuzzer v.1 ╾───────────────────────────────────────────────────────────────────╴'));
 
 		if (!isset($data) && !isset(COMMAND['method']) && !isset(COMMAND['X'])) {
@@ -707,9 +784,13 @@
 							break;
 						case 'h':
 							$soh = 'Hide';
+							break;
 					}
 
 					switch ($show_or_hide[3]) {
+						case 'r':
+							$soh = $soh . ' RegEx';
+							break;
 						case 'c':
 							$soh = $soh . ' Status';
 							break;
@@ -752,9 +833,13 @@
 								break;
 							case 'h':
 								$soh = 'Hide';
+								break;
 						}
 
 						switch ($show_or_hide[3]) {
+							case 'r':
+								$soh = $soh . ' RegEx';
+								break;
 							case 'c':
 								$soh = $soh . ' Status';
 								break;
@@ -840,6 +925,7 @@
 		unset($cry);
 		unset($crypto);
 
+		array_push($cf, sprintf("%s\n", ' + Html Report      : True'));
 		array_push($cf, sprintf("%s\n", '╶───────────────────────────────────────────────────────────────────────────────────────╴'));
 
 		$fuzz = count(preg_grep('/true/', $fuzz));
@@ -858,10 +944,6 @@
 			unset($fuzz);
 			foreach ($cf as $head) {
 				printf("%s", $head);
-
-				if (isset(COMMAND['report'])) {
-					fwrite($report, $head);
-				}
 			}
 
 			unset($head);
@@ -872,13 +954,42 @@
 			die();
 		}
 
+		if (isset($make_report) && $make_report) {
+			$html_report = $_SERVER['HOME'] . '/.config/curlfuzzer/report.html';
+			$html_report = file_get_contents($html_report);
+			$html_report = explode("\t\t<!-- explode -->\n", $html_report);
+
+			$html_css = "\t<style>\n";
+			foreach (file($_SERVER['HOME'] . '/.config/curlfuzzer/report.css') as $css_line) {
+				$html_css .= sprintf("\t\t%s\n", rtrim($css_line));
+			}
+			$html_css .= "\t</style>";
+
+			$html_javascript = "\t<script>\n";
+			foreach (file($_SERVER['HOME'] . '/.config/curlfuzzer/report.js') as $js_line) {
+				$html_javascript .= sprintf("\t\t%s\n", rtrim($js_line));
+			}
+			$html_javascript .= "\t</script>";
+
+			$html_report[0] = str_replace([
+				"\t<!-- STYLE -->",
+				"\t<!-- JAVASCRIPT -->",
+			], [
+				$html_css,
+				$html_javascript,
+			], $html_report[0]);
+
+			fwrite($report, $html_report[0]);
+		}
+
 		unset($n);
 		unset($cf);
 		unset($number);
 		unset($valute);
 		unset($command);
-
-		$url_parse = parse_url($url);
+		unset($report_html);
+		unset($report_css);
+		unset($report_js);
 
 		if (!boolval(preg_match_all('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}+$/', $url_parse['host']))) {
 			$add = gethostbyname($url_parse['host']);
@@ -1212,13 +1323,11 @@
 				$status = intval($http_response_info['http_code']);
 				$size   = intval($http_response_info['size_download']);
 				$time   = substr(strval($http_response_info['total_time'] * 1000), 0, 6);
-				//$time   = curl_getinfo($$http_request, CURLINFO_CONNECT_TIME_T);
 
 				$http_response = curl_multi_getcontent($$http_request);
 
 				$length = strlen($http_response);
 				preg_match_all('/[^\s]+/mi', $http_response, $words, PREG_SET_ORDER);
-				//preg_match_all('/^Set-Cookie:\s*([^;]*);/mi', $http_response, $cookie);
 				$words  = count($words);
 				$lines  = count(explode("\n", $http_response));
 
@@ -1260,6 +1369,56 @@
 								array_push($display['show'], 'no');
 							}
 						}
+					}
+
+					if (isset(COMMAND['sr'])) {
+						$show_regex = COMMAND['sr'];
+
+						if (is_string($show_regex)) {
+							if (@preg_match_all('/' . $show_regex . '/', $http_response) > 0) {
+								array_push($display['show'], 'yes');
+							}
+							else {
+								array_push($display['show'], 'no');
+							}
+						}
+						else {
+							foreach ($show_regex as $sr) {
+								if (@preg_match_all('/' . $sr . '/', $http_response) > 0) {
+									array_push($display['show'], 'yes');
+								}
+								else {
+									array_push($display['show'], 'no');
+								}
+							}
+						}
+
+						unset($show_regex);
+					}
+
+					if (isset(COMMAND['hr'])) {
+						$hide_regex = COMMAND['hr'];
+
+						if (is_string($hide_regex)) {
+							if (@preg_match_all('/' . $hide_regex . '/', $http_response) > 0) {
+								array_push($display['hide'], 'no');
+							}
+							else {
+								array_push($display['hide'], 'yes');
+							}
+						}
+						else {
+							foreach ($hide_regex as $hr) {
+								if (@preg_match_all('/' . $hr . '/', $http_response) > 0) {
+									array_push($display['hide'], 'no');
+								}
+								else {
+									array_push($display['hide'], 'yes');
+								}
+							}
+						}
+
+						unset($hide_regex);
 					}
 
 					if (isset(COMMAND['sf'])) {
@@ -1730,8 +1889,81 @@
 					unset($hide);
 
 					if ($display) {
-						if (isset(COMMAND['report'])) {
-							fwrite($report, sprintf("\r %07s: %-43s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), $$http_payload, $status, $size, $lines, $words, $length, $time));
+						if (isset($make_report) && $make_report) {
+							$report_request = $http_response_info['request_header'];
+							if (isset($use_data) && $use_data) {
+								if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$report_request = $report_request . $$http_payload;
+									}
+									else {
+										$report_request = $report_request . $data;
+									}
+								}
+								else {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$report_request = $report_request . str_replace('FUZZ', $$http_payload, $data);
+									}
+									else {
+										$report_request = $report_request . $data;
+									}
+								}
+							}
+
+							$report_payload  = htmlspecialchars($$http_payload,  ENT_QUOTES, 'UTF-8');
+							$report_request  = htmlspecialchars($report_request, ENT_QUOTES, 'UTF-8');
+							$report_response = htmlspecialchars($http_response,  ENT_QUOTES, 'UTF-8');
+
+							$req_line_html = '';
+							for ($rqlh = 1; $rqlh <= count(explode("\n", $report_request)); $rqlh++) {
+								$req_line_html .= "\t\t\t\t\t\t\t<pre>" . $rqlh . "</pre>\n";
+							}
+
+							$res_line_html = '';
+							for ($rslh = 1; $rslh <= count(explode("\n", $report_response)); $rslh++) {
+								$res_line_html .= "\t\t\t\t\t\t\t<pre>" . $rslh . "</pre>\n";
+							}
+
+							$res_line_html .= "\t\t\t\t\t\t";
+							$req_line_html .= "\t\t\t\t\t\t";
+
+							$html_report_body = str_replace([
+								'PAYLOAD',
+								'ID',
+								'CODE',
+								'SIZE',
+								'LINES',
+								'WORDS',
+								'LENGTH',
+								'TIME',
+								'REQ_LIN',
+								'REQUEST',
+								'RES_LIN',
+								'RESPONSE',
+							], [
+								$report_payload,
+								sprintf("%07s", ($i + $l + 1)),
+								$status,
+								$size,
+								$lines,
+								$words,
+								$length,
+								$time,
+								$req_line_html,
+								$report_request,
+								$res_line_html,
+								$report_response,
+							], $html_report[1]);
+
+							fwrite($report, $html_report_body);
+							unset($report_payload);
+							unset($report_request);
+							unset($report_response);
+							unset($req_line_html);
+							unset($res_line_html);
+							unset($rqlh);
+							unset($rslh);
+							unset($id);
 						}
 
 						if (boolval(preg_match('/^1/', $status))) {
@@ -1845,7 +2077,8 @@
 			fclose($verbose_log);
 		}
 
-		if (isset(COMMAND['report'])) {
+		if (isset($make_report) && $make_report) {
+			fwrite($report, $html_report[2]);
 			fclose($report);
 		}
 
@@ -1879,7 +2112,7 @@
 
 		        --right        null    : Payload in right
 		  -r,   --reflect      null    : Reflect to payload
-		        --report       null    : make report
+		        --report       string  : make report (format: html)
 		        --req-report   string  : report all request in file
 		        --res-report   null    : report all response
 		        --sleep        integer : x request / sec
@@ -1900,13 +2133,14 @@
 		  --sL, --sL           integer : Show/Hide response length
 		  --ss, --hs           integer : Show/Hide response size
 		  --sf, --hf           string  : Show/Hide response str
+		  --sr, --hr           string  : Show/Hide response regex
 		  --st, --sb           float   : Smaller/Bigger time
 
 		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 		Fuzz tag: FUZZ
 
 		ex:
-		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404
+		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404 --report report.html
 		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --hc 404 --tread 200 --user-agent android
 		 - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'
 		 - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/

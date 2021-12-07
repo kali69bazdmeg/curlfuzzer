@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title> CurlFuzzer - Report </title>
+	<meta name="keywords" content="HTML, CSS, JavaScript">
+	<meta name="description" content="CurlFuzzer Report">
+	<meta name="author" content="Anonymous Kali">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- STYLE -->
+	<!-- JAVASCRIPT -->
+</head>
+<body onload="report()">
+	<main>
+		<div id="search">
+			<div id="search-head">
+				<input type="search" name="search" id="search-input" placeholder="RegEx">
+			</div>
+			<div id="search-config">
+				<div id="search-in">
+					<pre>Search In</pre>
+					<input name="query" id="in-id" type="radio"><span>Id</span>
+					<input name="query" id="in-payload" type="radio"><span>Payload</span>
+					<input name="query" id="in-request" type="radio"><span>Request</span>
+					<input name="query" id="in-response" type="radio"><span>Response</span>
+					<br>
+					<input name="query" id="in-code" type="radio"><span>Code</span>
+					<input name="query" id="in-size" type="radio"><span>Size</span>
+					<input name="query" id="in-lines" type="radio"><span>Lines</span>
+					<input name="query" id="in-words" type="radio"><span>Words</span>
+					<input name="query" id="in-length" type="radio"><span>Length</span>
+				</div>
+				<div id="search-type">
+					<pre>Search Type</pre>
+					<input name="type" id="positive" type="radio"><span>Positive Search</span>
+					<br>
+					<input name="type" id="negative" type="radio"><span>Negative Search</span>
+				</div>
+			</div>
+		</div>
+		<!-- explode -->
+		<div class="id-data">
+			<div class="response-data">
+				<input class="open_rrb" type="submit" value="Open">
+				<pre class="payload">PAYLOAD</pre>
+				<div class="response-datas">
+					<pre class="id">ID</pre>
+					<pre class="code">c: CODE</pre>
+					<pre class="size">s: SIZE</pre>
+					<pre class="lines">l: LINES</pre>
+					<pre class="words">w: WORDS</pre>
+					<pre class="length">L: LENGTH</pre>
+					<pre class="time">t: TIME</pre>
+				</div>
+			</div>
+			<div class="report-box">
+				<div class="request-response-address">
+					<h5 class="req-address">Request</h5>
+					<h5 class="res-address">Response</h5>
+				</div>
+				<div class="request-response-box">
+					<div class="request">
+						<div class="raw_lines">
+REQ_LIN</div>
+						<div class="raw_request">
+<pre class="search_request">REQUEST</pre>
+						</div>
+					</div>
+					<div class="response">
+						<div class="raw_lines">
+RES_LIN</div>
+						<div class="raw_response">
+<pre class="search_response">RESPONSE</pre>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- explode -->
+	</main>
+</body>
+</html>

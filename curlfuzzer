@@ -925,7 +925,10 @@
 		unset($cry);
 		unset($crypto);
 
-		array_push($cf, sprintf("%s\n", ' + Html Report      : True'));
+		if (isset($make_report) && $make_report) {
+			array_push($cf, sprintf("%s\n", ' + Html Report      : True'));
+		}
+
 		array_push($cf, sprintf("%s\n", '╶───────────────────────────────────────────────────────────────────────────────────────╴'));
 
 		$fuzz = count(preg_grep('/true/', $fuzz));

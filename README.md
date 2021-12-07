@@ -38,7 +38,7 @@ Usage: curlfuzzer [OPTIONS]
 
         --right        null    : Payload in right
   -r,   --reflect      null    : Reflect to payload
-        --report       null    : make report
+        --report       string  : make report (format: html)
         --req-report   string  : report all request in file
         --res-report   null    : report all response
         --sleep        integer : x request / sec
@@ -59,13 +59,14 @@ Usage: curlfuzzer [OPTIONS]
   --sL, --sL           integer : Show/Hide response length
   --ss, --hs           integer : Show/Hide response size
   --sf, --hf           string  : Show/Hide response str
+  --sr, --hr           string  : Show/Hide response regex
   --st, --sb           float   : Smaller/Bigger time
 
 Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 Fuzz tag: FUZZ
 
 ex:
- - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404
+ - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404 --report report.html
  - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --hc 404 --tread 200 --user-agent android
  - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'
  - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/

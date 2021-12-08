@@ -57,7 +57,7 @@
 		'header:', 'user-agent:', 'interface:', 'cookie:', 'reflect',
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
 		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
-		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
+		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right', 'upgrade',
 		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bt:',
@@ -95,6 +95,54 @@
 		unset($key);
 		unset($query);
 		unset($stop);
+	}
+
+	if (isset(COMMAND['upgrade'])) {
+		$git_curlfuzzer_ver = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/curlfuzzer');
+		$loc_curlfuzzer_ver = @file_get_contents($argv[0]);
+		$git_report_html    = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.html');
+		$loc_report_html    = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.html');
+		$git_report_js      = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.js');
+		$loc_report_js      = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.js');
+		$git_report_css     = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.css');
+		$loc_report_css     = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css');
+
+		if (!is_bool($git_curlfuzzer_ver) && !is_bool($loc_curlfuzzer_ver)) {
+			if (hash('sha256', $git_curlfuzzer_ver) !== hash('sha256', $loc_curlfuzzer_ver)) {
+				file_put_contents($argv[0], $git_curlfuzzer_ver);
+			}
+		}
+
+		if (!is_bool($git_report_html) && !is_bool($git_report_html)) {
+			if (hash('sha256', $git_report_html) !== hash('sha256', $loc_report_html)) {
+				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.html', $git_report_html);
+			}
+		}
+
+		if (!is_bool($git_report_js) && !is_bool($git_report_js)) {
+			if (hash('sha256', $git_report_js) !== hash('sha256', $loc_report_js)) {
+				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.js', $git_report_js);
+			}
+		}
+
+		if (!is_bool($git_report_css) && !is_bool($git_report_css)) {
+			if (hash('sha256', $git_report_css) !== hash('sha256', $loc_report_css)) {
+				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css', $git_report_css);
+			}
+		}
+
+		unset($git_curlfuzzer_ver);
+		unset($loc_curlfuzzer_ver);
+		unset($git_report_html);
+		unset($loc_report_html);
+		unset($git_report_js);
+		unset($loc_report_js);
+		unset($git_report_css);
+		unset($loc_report_css);
+
+		printf("%s\n", 'CurlFuzzer upgraded.');
+
+		die();
 	}
 
 	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (isset(COMMAND['w']) || isset(COMMAND['wordlist']) || isset(COMMAND['test'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']))) {
@@ -394,7 +442,7 @@
 			}
 		}
 		elseif (isset(COMMAND['sleep'])) {
-			$multi = intval(COMMAND['sleep']);
+			$multi = intval(explode(':', COMMAND['sleep'])[0]);
 		}
 		else {
 			$multi = intval($config['thread']);
@@ -450,7 +498,6 @@
 		}
 
 		$wordlines = array_values($wordlines);
-
 		$wordcount = count($wordlines);
 
 		if ($multi > $wordcount) {
@@ -1289,7 +1336,7 @@
 
 					printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
 
-					sleep(1);
+					sleep(intval(explode(':', COMMAND['sleep'])[1]));
 					$sleep++;
 				}
 
@@ -2138,6 +2185,8 @@
 		  --sf, --hf           string  : Show/Hide response str
 		  --sr, --hr           string  : Show/Hide response regex
 		  --st, --sb           float   : Smaller/Bigger time
+
+		  --upgrade            null    : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 		Fuzz tag: FUZZ

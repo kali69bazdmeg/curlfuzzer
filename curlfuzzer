@@ -1,6 +1,18 @@
 #!/usr/bin/env php
 <?php
 
+	function md2($input) {
+		return hash('md2', $input);
+	}
+
+	function md4($input) {
+		return hash('md4', $input);
+	}
+
+	function sha256($input) {
+		return hash('sha256', $input);
+	}
+
 	set_time_limit(0);
 	ini_set('memory_limit', '132768M');
 	ini_set('max_execution_time', 0);
@@ -29,7 +41,8 @@
 	if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/config.json')) {
 		$conf = [
 			'version' => '1.0',
-			'thread' => '120',
+			'thread'  => '120',
+			'fuzztag' => 'FUZZ',
 
 			'user-agent' => [
 				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
@@ -47,8 +60,10 @@
 	$config = json_decode($config, true);
 
 	if (intval(exec('tput cols')) < 120) {
-		printf(" %s\n", 'Please set terminal width min on 120 pixel.');
-		die();
+		$w_size = 43 - (120 - intval(exec('tput cols')));
+	}
+	else {
+		$w_size = 43;
 	}
 
 	$gopt_str = ['u:', 'w:', 'd:', 'p:', 't:', 'X:', 'H:', 'A:', 'b:', 'q', 'f', 'h', 'r', 'i:', 's'];
@@ -57,8 +72,9 @@
 		'header:', 'user-agent:', 'interface:', 'cookie:', 'reflect',
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
 		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
-		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right', 'upgrade',
-		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
+		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
+		'upgrade', 'lower', 'upper', 'b64d', 'b64e',
+		'hex', 'urlde', 'urlen', 'md2', 'md4', 'md5', 'sha256',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bt:',
 		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'st:',
@@ -100,10 +116,13 @@
 	if (isset(COMMAND['upgrade'])) {
 		$git_curlfuzzer_ver = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/curlfuzzer');
 		$loc_curlfuzzer_ver = @file_get_contents($argv[0]);
+
 		$git_report_html    = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.html');
 		$loc_report_html    = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.html');
+
 		$git_report_js      = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.js');
 		$loc_report_js      = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.js');
+
 		$git_report_css     = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.css');
 		$loc_report_css     = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css');
 
@@ -233,9 +252,11 @@
 			}
 			else {
 				printf("\r%s\n", 'There are more of these than I should:');
+
 				for ($i = 0; $i < count(COMMAND['data']); $i++) {
 					printf(" %s \e[0;31m%s\e[0m\n", '--data', COMMAND['data'][$i]);
 				}
+
 				die();
 			}
 		}
@@ -270,9 +291,11 @@
 			}
 			else {
 				printf("\r%s\n", 'There are more of these than I should:');
+
 				for ($i = 0; $i < count(COMMAND['d']); $i++) {
 					printf(" %s \e[0;31m%s\e[0m\n", '-d', COMMAND['d'][$i]);
 				}
+
 				die();
 			}
 		}
@@ -362,18 +385,19 @@
 				$proxy_server[1] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
 
 				if (is_resource($proxy_server[1])) {
-					/*
 					switch ($proxy[0]) {
 						case 'http':
 							fwrite($proxy_server[1], "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
 
 							if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server[1], 1024)) === 0) {
-								printf(" %s\n", 'This is not a http proxy server');
+								printf("Error: %s\n", 'This is not a http proxy server');
 								fclose($proxy_server[1]);
 								die();
 							}
 
 							break;
+
+						/*
 						case 'socks4':
 							fwrite($proxy_server[1], "\04\01\00");
 
@@ -394,11 +418,12 @@
 							}
 
 							break;
+						*/
+
 						default:
 							printf(" %s\n", 'Proxy Type not checked.');
 							fclose($proxy_server[1]);
 					}
-					 */
 
 					fclose($proxy_server[1]);
 				}
@@ -422,9 +447,11 @@
 				}
 				else {
 					printf("\r%s\n", 'There are more of these than I should:');
+
 					for ($i = 0; $i < count(COMMAND['thread']); $i++) {
 						printf(" %s \e[0;31m%s\e[0m\n", '--thread', COMMAND['thread'][$i]);
 					}
+
 					die();
 				}
 			}
@@ -434,9 +461,11 @@
 				}
 				else {
 					printf("\r%s\n", 'There are more of these than I should:');
+
 					for ($i = 0; $i < count(COMMAND['t']); $i++) {
 						printf(" %s \e[0;31m%s\e[0m\n", '-t', COMMAND['t'][$i]);
 					}
+
 					die();
 				}
 			}
@@ -933,7 +962,7 @@
 			array_push($cf, sprintf("%s\n", ' + Proxy            : ' . $proxy[0] . '://' . $proxy[1 - $p] . ':' . $proxy[2 - $p] . '/'));
 		}
 
-		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde/', array_keys(COMMAND));
+		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde|md2|md5|sha256/', array_keys(COMMAND));
 		$crypto = array_values($crypto);
 
 		foreach ($crypto as $cry) {
@@ -965,6 +994,22 @@
 				case 'urlen':
 					$wordlines = array_map('urlencode', $wordlines);
 					array_push($cf, sprintf("%s\n", ' + StrToUrl         : True'));
+					break;
+				case 'md2':
+					$wordlines = array_map('md2', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToMd2         : True'));
+					break;
+				case 'md4':
+					$wordlines = array_map('md4', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToMd4         : True'));
+					break;
+				case 'md5':
+					$wordlines = array_map('md5', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToMd5         : True'));
+					break;
+				case 'sha256':
+					$wordlines = array_map('sha256', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToSha256      : True'));
 					break;
 			}
 		}
@@ -1040,11 +1085,6 @@
 		unset($report_html);
 		unset($report_css);
 		unset($report_js);
-
-		if (!boolval(preg_match_all('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}+$/', $url_parse['host']))) {
-			$add = gethostbyname($url_parse['host']);
-			$url = str_replace($url_parse['host'], $add, $url);
-		}
 
 		if (isset(COMMAND['verbose'])) {
 			$verbose_log = fopen($_SERVER['HOME'] . '/.config/curlfuzzer/verbose.log', 'w');
@@ -1321,24 +1361,13 @@
 				$k = $k + 1;
 			}
 
-			$sleep = 0;
+			$sleep = false;
 			do {
 				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);
 				$hours     = floor($diff_time / 3600);
 				$minutes   = floor(($diff_time - ($hours * 3600)) / 60);
 				$seconds   = floor($diff_time - ($hours * 3600) - ($minutes * 60));
 				$runtime   = sprintf("%02s:%02s:%02s", $hours, $minutes, $seconds);
-
-				if (isset(COMMAND['sleep']) && $sleep === 0) {
-					if (!isset($send)) {
-						$send = 0;
-					}
-
-					printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
-
-					sleep(intval(explode(':', COMMAND['sleep'])[1]));
-					$sleep++;
-				}
 
 				$status = curl_multi_exec($multi_tread, $active);
 
@@ -1349,7 +1378,19 @@
 					$send = ($multi - $active) + $i;
 				}
 
-				printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+				if (isset(COMMAND['sleep']) && !$sleep) {
+					if (!isset($send)) {
+						$send = true;
+					}
+
+					printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+
+					sleep(intval(explode(':', COMMAND['sleep'])[1]));
+					$sleep = false;
+				}
+				else {
+					printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
+				}
 
 				if ($active > 0) {
 					curl_multi_select($multi_tread, 0.1);
@@ -2033,10 +2074,10 @@
 						}
 
 						if (isset(COMMAND['right'])) {
-							printf("\r %07s: c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s %-43s\n", ($i + $l + 1), $status, $size, $lines, $words, $length, $time, "'" . $$http_payload . "'");
+							printf("\r %07s: c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s %-" . $w_size . "s\n", ($i + $l + 1), $status, $size, $lines, $words, $length, $time, "'" . $$http_payload . "'");
 						}
 						else {
-							printf("\r %07s: %-43s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
+							printf("\r %07s: %-" . $w_size . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
 						}
 
 						if (isset(COMMAND['req-report']) && !isset(COMMAND['verbose'])) {
@@ -2165,7 +2206,7 @@
 		        --report       string  : make report (format: html)
 		        --req-report   string  : report all request in file
 		        --res-report   null    : report all response
-		        --sleep        integer : x request / sec
+		        --sleep        string  : x request / sec (format: x:s)
 		        --test         null    : send 3 request
 		        --verbose      null    : verbose log
 
@@ -2197,6 +2238,7 @@
 		 - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'
 		 - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/
 		 - curlfuzzer --url 'http://example.com/' --wordlist words.txt --sc 200,204,301,302,307,401,403,405
+		 - curlfuzzer --utl 'http://example.com/FUZZ' -w words.txt --sleep 10:2 --hc 404
 		END;
 
 		printf("%s\n", $helper);

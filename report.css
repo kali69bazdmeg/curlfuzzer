@@ -27,18 +27,20 @@ main {
 	display: flex;
 	width: 50%;
 	margin: 0 5px 0 0;
-	/* padding: 1px;
-	background: #444444;
-	border-radius: 4px; */
+	padding: 1px;
+	background: #181a1b;
+	border-radius: 4px;
+	overflow: auto;
 }
 .response {
 	height: 350px;
 	display: flex;
 	width: 50%;
 	margin: 0 0 0 5px;
-	/* padding: 1px;
-	background: #444444;
-	border-radius: 4px; */
+	padding: 1px;
+	background: #181a1b;
+	border-radius: 4px;
+	overflow: auto;
 }
 .response-data {
 	display: flex;
@@ -78,7 +80,6 @@ main {
 	color: #fff;
 }
 .raw_lines {
-	background: #181a1b;
 	min-width: 25px;
 	text-align: end;
 	padding: 5px;

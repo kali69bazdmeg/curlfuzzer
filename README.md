@@ -41,7 +41,7 @@ Usage: curlfuzzer [OPTIONS]
         --report       string  : make report (format: html)
         --req-report   string  : report all request in file
         --res-report   null    : report all response
-        --sleep        integer : x request / sec
+        --sleep        string  : x request / sec (format: x:s)
         --test         null    : send 3 request
         --verbose      null    : verbose log
 
@@ -53,6 +53,15 @@ Usage: curlfuzzer [OPTIONS]
         --urlde        null    : payload string url decode
         --hex          null    : payload string to hexadecimal
 
+        --md2          null    : payload string to md2 hash
+        --md4          null    : payload string to md4 hash
+        --md5          null    : payload string to md5 hash
+        --sha1         null    : payload string to sha1 hash
+        --sha224       null    : payload string to sha224 hash
+        --sha256       null    : payload string to sha256 hash
+        --sha384       null    : payload string to sha384 hash
+        --sha512       null    : payload string to sha512 hash
+
   --sc, --hc           integer : Show/Hide response status code
   --sl, --hl           integer : Show/Hide response lines
   --sw, --hw           integer : Show/Hide response words
@@ -61,6 +70,8 @@ Usage: curlfuzzer [OPTIONS]
   --sf, --hf           string  : Show/Hide response str
   --sr, --hr           string  : Show/Hide response regex
   --st, --sb           float   : Smaller/Bigger time
+
+  --upgrade            null    : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 Fuzz tag: FUZZ
@@ -71,6 +82,7 @@ ex:
  - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'
  - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/
  - curlfuzzer --url 'http://example.com/' --wordlist words.txt --sc 200,204,301,302,307,401,403,405
+ - curlfuzzer --utl 'http://example.com/FUZZ' -w words.txt --sleep 10:2 --hc 404
 ```
 
 ## License

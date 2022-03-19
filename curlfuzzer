@@ -1,6 +1,12 @@
 #!/usr/bin/env php
 <?php
 
+	set_time_limit(0);
+	ini_set('memory_limit', '132768M');
+	ini_set('max_execution_time', 0);
+	ini_set('display_errors', false);
+	ini_set('display_startup_errors', false);
+
 	function md2($input) {
 		return hash('md2', $input);
 	}
@@ -9,15 +15,21 @@
 		return hash('md4', $input);
 	}
 
+	function sha224($input) {
+		return hash('sha224', $input);
+	}
+
 	function sha256($input) {
 		return hash('sha256', $input);
 	}
 
-	set_time_limit(0);
-	ini_set('memory_limit', '132768M');
-	ini_set('max_execution_time', 0);
-	ini_set('display_errors', false);
-	ini_set('display_startup_errors', false);
+	function sha384($input) {
+		return hash('sha384', $input);
+	}
+
+	function sha512($input) {
+		return hash('sha512', $input);
+	}
 
 	if (!function_exists('curl_init')) {
 		printf(" %s\n", 'PHP cURL is not installed!');
@@ -42,7 +54,7 @@
 		$conf = [
 			'version' => '1.0',
 			'thread'  => '120',
-			'fuzztag' => 'FUZZ',
+			'fuzztag' => $config['fuzztag'],
 
 			'user-agent' => [
 				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
@@ -59,12 +71,12 @@
 	$config = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/config.json');
 	$config = json_decode($config, true);
 
-	if (intval(exec('tput cols')) < 120) {
+	/* if (intval(exec('tput cols')) < 120) { */
 		$w_size = 43 - (120 - intval(exec('tput cols')));
-	}
+	/* }
 	else {
 		$w_size = 43;
-	}
+	} */
 
 	$gopt_str = ['u:', 'w:', 'd:', 'p:', 't:', 'X:', 'H:', 'A:', 'b:', 'q', 'f', 'h', 'r', 'i:', 's'];
 	define('COMMAND', getopt(implode('', $gopt_str), $gopt_arr = [
@@ -73,8 +85,8 @@
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
 		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
-		'upgrade', 'lower', 'upper', 'b64d', 'b64e',
-		'hex', 'urlde', 'urlen', 'md2', 'md4', 'md5', 'sha256',
+		'upgrade', 'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
+		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bt:',
 		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'st:',
@@ -170,7 +182,7 @@
 			if (is_string(COMMAND['url'])) {
 				$url = COMMAND['url'];
 
-				if ($url_fuzz = is_integer($number = preg_match_all('/FUZZ/', $url))) {
+				if ($url_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $url))) {
 					$valute = 'true';
 				}
 				else {
@@ -197,7 +209,7 @@
 			if (is_string(COMMAND['u'])) {
 				$url = COMMAND['u'];
 
-				if ($url_fuzz = is_integer($number = preg_match_all('/FUZZ/', $url))) {
+				if ($url_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $url))) {
 					$valute = 'true';
 				}
 				else {
@@ -226,7 +238,7 @@
 				$data = COMMAND['data'];
 				$use_data = true;
 
-				if ($data_fuzz = is_integer($number = preg_match_all('/FUZZ/', $data))) {
+				if ($data_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $data))) {
 					json_decode($data);
 
 					if (json_last_error() === JSON_ERROR_NONE) {
@@ -265,7 +277,7 @@
 				$data = COMMAND['d'];
 				$use_data = true;
 
-				if ($data_fuzz = is_integer($number = preg_match_all('/FUZZ/', $data))) {
+				if ($data_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $data))) {
 					json_decode($data);
 
 					if (json_last_error() === JSON_ERROR_NONE) {
@@ -381,6 +393,7 @@
 			}
 
 			$proxy_server[0] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
+
 			if (is_resource($proxy_server[0])) {
 				$proxy_server[1] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
 
@@ -589,7 +602,7 @@
 
 			$method = COMMAND['method'];
 
-			if ($method_fuzz = is_integer($number = preg_match_all('/FUZZ/', $mathod))) {
+			if ($method_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $method))) {
 				$valute = 'true';
 			}
 			else {
@@ -609,7 +622,7 @@
 
 			$method = COMMAND['X'];
 
-			if ($method_fuzz = is_integer($number = preg_match_all('/FUZZ/', $method))) {
+			if ($method_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $method))) {
 				$valute = 'true';
 			}
 			else {
@@ -653,7 +666,7 @@
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
 
-			if ($user_agent_fuzz = is_integer($number = preg_match_all('/FUZZ/', $user_agent))) {
+			if ($user_agent_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $user_agent))) {
 				$valute = 'true';
 			}
 			else {
@@ -683,7 +696,7 @@
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
 
-			if ($user_agent_fuzz = is_integer($number = preg_match_all('/FUZZ/', $user_agent))) {
+			if ($user_agent_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $user_agent))) {
 				$valute = 'true';
 			}
 			else {
@@ -725,7 +738,7 @@
 			if (is_string($header)) {
 				array_push($cf, sprintf("%s\n", ' + Header           : ' . $header));
 
-				if ($header_fuzz = is_integer($number = preg_match_all('/FUZZ/', $header))) {
+				if ($header_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $header))) {
 					$valute = 'true';
 				}
 				else {
@@ -746,9 +759,9 @@
 					array_push($cf, sprintf("%s\n", ' + Header           : ' . $header[$h]));
 				}
 
-				if (count($h_fuzz = preg_grep('/FUZZ/', $header)) > 0) {
+				if (count($h_fuzz = preg_grep('/' . $config['fuzztag'] . '/', $header)) > 0) {
 					foreach ($h_fuzz as $hfc) {
-						if ($header_fuzz = is_integer($number = preg_match_all('/FUZZ/', $hfc))) {
+						if ($header_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $hfc))) {
 							$valute = 'true';
 						}
 						else {
@@ -786,7 +799,7 @@
 			if (is_string($cookie)) {
 				array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie));
 
-				if ($cookie_fuzz = is_integer($number = preg_match_all('/FUZZ/', $cookie))) {
+				if ($cookie_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $cookie))) {
 					$valute = 'true';
 				}
 				else {
@@ -807,9 +820,9 @@
 					array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie[$c]));
 				}
 
-				if (count($c_fuzz = preg_grep('/FUZZ/', $cookie)) > 0) {
+				if (count($c_fuzz = preg_grep('/' . $config['fuzztag'] . '/', $cookie)) > 0) {
 					foreach ($c_fuzz as $cfc) {
-						if ($config_fuzz = is_integer($number = preg_match_all('/FUZZ/', $cfc))) {
+						if ($config_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $cfc))) {
 							$valute = 'true';
 						}
 						else {
@@ -962,7 +975,7 @@
 			array_push($cf, sprintf("%s\n", ' + Proxy            : ' . $proxy[0] . '://' . $proxy[1 - $p] . ':' . $proxy[2 - $p] . '/'));
 		}
 
-		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde|md2|md5|sha256/', array_keys(COMMAND));
+		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde|md2|md4|md5|sha1|sha256|sha384|sha512/', array_keys(COMMAND));
 		$crypto = array_values($crypto);
 
 		foreach ($crypto as $cry) {
@@ -1007,9 +1020,25 @@
 					$wordlines = array_map('md5', $wordlines);
 					array_push($cf, sprintf("%s\n", ' + StrToMd5         : True'));
 					break;
+				case 'sha1':
+					$wordlines = array_map('sha1', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToSha1        : True'));
+					break;
+				case 'sha224':
+					$wordlines = array_map('sha224', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToSha224      : True'));
+					break;
 				case 'sha256':
 					$wordlines = array_map('sha256', $wordlines);
 					array_push($cf, sprintf("%s\n", ' + StrToSha256      : True'));
+					break;
+				case 'sha384':
+					$wordlines = array_map('sha384', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToSha384      : True'));
+					break;
+				case 'sha512':
+					$wordlines = array_map('sha512', $wordlines);
+					array_push($cf, sprintf("%s\n", ' + StrToSha512      : True'));
 					break;
 			}
 		}
@@ -1020,6 +1049,8 @@
 		if (isset($make_report) && $make_report) {
 			array_push($cf, sprintf("%s\n", ' + Html Report      : True'));
 		}
+
+		array_push($cf, sprintf("%s\n", ' + Fuzz Tag         : ' . $config['fuzztag']));
 
 		array_push($cf, sprintf("%s\n", '╶───────────────────────────────────────────────────────────────────────────────────────╴'));
 
@@ -1110,14 +1141,14 @@
 				];
 
 				if (isset($url_fuzz) && $url_fuzz) {
-					$attack_url = str_replace('FUZZ', urlencode($$http_payload), $url);
+					$attack_url = str_replace($config['fuzztag'], urlencode($$http_payload), $url);
 				}
 				else {
 					$attack_url = $url;
 				}
 
 				if (isset($data_fuzz) && $data_fuzz) {
-					$attack_data = str_replace('FUZZ', urlencode($$http_payload), $data);
+					$attack_data = str_replace($config['fuzztag'], urlencode($$http_payload), $data);
 					array_push($http_request_header, 'Content-Length: ' . strlen($attack_data));
 				}
 				else {
@@ -1132,7 +1163,7 @@
 				if (isset($use_header) && $use_header) {
 					if (is_string($header)) {
 						if (isset($header_fuzz) && $header_fuzz) {
-							$attack_header = str_replace('FUZZ', urlencode($$http_payload), $header);
+							$attack_header = str_replace($config['fuzztag'], urlencode($$http_payload), $header);
 						}
 						else {
 							$attack_header = $header;
@@ -1143,7 +1174,7 @@
 
 					if (is_array($header)) {
 						for ($h = 0; $h < count($header); $h++) {
-							$attack_header = str_replace('FUZZ', urlencode($$http_payload), $header[$h]);
+							$attack_header = str_replace($config['fuzztag'], urlencode($$http_payload), $header[$h]);
 							array_push($http_request_header, $attack_header);
 						}
 					}
@@ -1164,7 +1195,7 @@
 					}
 
 					if (isset($user_agent_fuzz)) {
-						$user_agent = str_replace('FUZZ', $$http_payload, $user_agent);
+						$user_agent = str_replace($config['fuzztag'], $$http_payload, $user_agent);
 					}
 
 					if ($user_agent === 'android') {
@@ -1192,7 +1223,7 @@
 					}
 
 					if (isset($method_fuzz) && $method_fuzz) {
-						$attack_method = str_replace('FUZZ', urlencode($$http_payload), $method);
+						$attack_method = str_replace($config['fuzztag'], urlencode($$http_payload), $method);
 					}
 					else {
 						$attack_method = $method;
@@ -1249,7 +1280,7 @@
 				if (isset($use_cookie) && $use_cookie) {
 					if (is_string($cookie)) {
 						if (isset($cookie_fuzz) && $cookie_fuzz) {
-							$attack_cookie = str_replace('FUZZ', urlencode($$http_payload), $cookie);
+							$attack_cookie = str_replace($config['fuzztag'], urlencode($$http_payload), $cookie);
 						}
 						else {
 							$attack_cookie = $cookie;
@@ -1258,7 +1289,7 @@
 
 					if (is_array($cookie)) {
 						for ($c = 0; $c < count($cookie); $c++) {
-							$attack_cookie = str_replace('FUZZ', urlencode($$http_payload), $cookie[$c]);
+							$attack_cookie = str_replace($config['fuzztag'], urlencode($$http_payload), $cookie[$c]);
 							$attack_cookie = $attack_cookie . '; ' . $attack_cookie;
 						}
 					}
@@ -1413,12 +1444,12 @@
 				$http_response_info = curl_getinfo($$http_request);
 				$status = intval($http_response_info['http_code']);
 				$size   = intval($http_response_info['size_download']);
-				$time   = substr(strval($http_response_info['total_time'] * 1000), 0, 6);
+				$time   = substr(strval($http_response_info["connect_time"] * 1000), 0, 6);
 
 				$http_response = curl_multi_getcontent($$http_request);
 
 				$length = strlen($http_response);
-				preg_match_all('/[^\s]+/mi', $http_response, $words, PREG_SET_ORDER);
+				preg_match_all('/[\S]+/mi', $http_response, $words, PREG_SET_ORDER);
 				$words  = count($words);
 				$lines  = count(explode("\n", $http_response));
 
@@ -1426,23 +1457,23 @@
 					if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
 						if (isset($url_fuzz) && $url_fuzz) {
 							if (isset($add)) {
-								$$http_payload = str_replace('FUZZ', $$http_payload, str_replace($add, $url_parse['host'], $url));
+								$$http_payload = str_replace($config['fuzztag'], $$http_payload, str_replace($add, $url_parse['host'], $url));
 							}
 							else {
-								$$http_payload = str_replace('FUZZ', $$http_payload, $url);
+								$$http_payload = str_replace($config['fuzztag'], $$http_payload, $url);
 							}
 						}
 						elseif (isset($data_fuzz) && $data_fuzz) {
-							$$http_payload = str_replace('FUZZ', $$http_payload, $data);
+							$$http_payload = str_replace($config['fuzztag'], $$http_payload, $data);
 						}
 						elseif (isset($method_fuzz) && $method_fuzz) {
-							$$http_payload = str_replace('FUZZ', $$http_payload, $method);
+							$$http_payload = str_replace($config['fuzztag'], $$http_payload, $method);
 						}
 						elseif (isset($cookie_fuzz) && $cookie_fuzz) {
-							$$http_payload = str_replace('FUZZ', $$http_payload, $cookie);
+							$$http_payload = str_replace($config['fuzztag'], $$http_payload, $cookie);
 						}
 						elseif (isset($header_fuzz) && $header_fuzz && is_string($header)) {
-							$$http_payload = str_replace('FUZZ', $$http_payload, $header);
+							$$http_payload = str_replace($config['fuzztag'], $$http_payload, $header);
 						}
 					}
 
@@ -1993,7 +2024,7 @@
 								}
 								else {
 									if (isset($data_fuzz) && $data_fuzz) {
-										$report_request = $report_request . str_replace('FUZZ', $$http_payload, $data);
+										$report_request = $report_request . str_replace($config['fuzztag'], $$http_payload, $data);
 									}
 									else {
 										$report_request = $report_request . $data;
@@ -2100,7 +2131,7 @@
 								}
 								else {
 									if (isset($data_fuzz) && $data_fuzz) {
-										fwrite($request, str_replace('FUZZ', $$http_payload, $data));
+										fwrite($request, str_replace($config['fuzztag'], $$http_payload, $data));
 									}
 									else {
 										fwrite($request, $data);
@@ -2176,7 +2207,7 @@
 		printf("%s\n", '');
 	}
 	else {
-		$helper = <<< 'END'
+		$helper = <<< "END"
 		curlfuzzer by Anonymous Kali
 		Usage: curlfuzzer [OPTIONS]
 
@@ -2218,6 +2249,15 @@
 		        --urlde        null    : payload string url decode
 		        --hex          null    : payload string to hexadecimal
 
+		        --md2          null    : payload string to md2 hash
+		        --md4          null    : payload string to md4 hash
+		        --md5          null    : payload string to md5 hash
+		        --sha1         null    : payload string to sha1 hash
+		        --sha224       null    : payload string to sha224 hash
+		        --sha256       null    : payload string to sha256 hash
+		        --sha384       null    : payload string to sha384 hash
+		        --sha512       null    : payload string to sha512 hash
+
 		  --sc, --hc           integer : Show/Hide response status code
 		  --sl, --hl           integer : Show/Hide response lines
 		  --sw, --hw           integer : Show/Hide response words
@@ -2230,8 +2270,11 @@
 		  --upgrade            null    : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
-		Fuzz tag: FUZZ
+		END;
 
+		$helper .= sprintf("\n%s %s\n\n", "Fuzz tag:", $config["fuzztag"]);
+
+		$helper .= <<< "END"
 		ex:
 		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404 --report report.html
 		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --hc 404 --tread 200 --user-agent android

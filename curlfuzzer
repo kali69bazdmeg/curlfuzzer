@@ -392,60 +392,47 @@
 				$p = 2;
 			}
 
-			$proxy_server[0] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
+			$proxy_server = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
 
-			if (is_resource($proxy_server[0])) {
-				$proxy_server[1] = @stream_socket_client('tcp://' . $proxy[1 + $p] . ':' . $proxy[2 + $p], $error_code, $error_message, 3);
+			if (is_resource($proxy_server)) {
+				switch ($proxy[0]) {
+					case 'http':
+						fwrite($proxy_server, "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
 
-				if (is_resource($proxy_server[1])) {
-					switch ($proxy[0]) {
-						case 'http':
-							fwrite($proxy_server[1], "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
+						if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server, 1024)) === 0) {
+							printf("Error: %s\n", 'This is not a http proxy server');
+							fclose($proxy_server);
+							die();
+						}
 
-							if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server[1], 1024)) === 0) {
-								printf("Error: %s\n", 'This is not a http proxy server');
-								fclose($proxy_server[1]);
-								die();
-							}
+						break;
 
-							break;
+					/*
+					case 'socks4':
+						fwrite($proxy_server, "\04\01\00");
 
-						/*
-						case 'socks4':
-							fwrite($proxy_server[1], "\04\01\00");
+						if (fread($proxy_server, 2) !== "\00\5a") {
+							printf(" %s\n", 'This is not a socks proxy server');
+							fclose($proxy_server);
+							die();
+						}
 
-							if (fread($proxy_server[1], 2) !== "\00\5a") {
-								printf(" %s\n", 'This is not a socks proxy server');
-								fclose($proxy_server[1]);
-								die();
-							}
+						break;
+					case 'socks5':
+						fwrite($proxy_server, "\05\01\00");
 
-							break;
-						case 'socks5':
-							fwrite($proxy_server[1], "\05\01\00");
+						if (fread($proxy_server, 2) !== "\05\00") {
+							printf(" %s\n", 'This is not a socks5 proxy server');
+							fclose($proxy_server);
+							die();
+						}
 
-							if (fread($proxy_server[1], 2) !== "\05\00") {
-								printf(" %s\n", 'This is not a socks5 proxy server');
-								fclose($proxy_server[1]);
-								die();
-							}
+						break;
+					*/
 
-							break;
-						*/
-
-						default:
-							printf(" %s\n", 'Proxy Type not checked.');
-							fclose($proxy_server[1]);
-					}
-
-					fclose($proxy_server[1]);
-				}
-				else {
-					printf(" %s\n", 'Proxy Server not running');
-					die();
 				}
 
-				fclose($proxy_server[0]);
+				fclose($proxy_server);
 			}
 			else {
 				printf(" %s\n", 'Proxy Server not running');

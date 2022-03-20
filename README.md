@@ -1,4 +1,4 @@
-## curlfuzzer
+## CurlFuzzer
 curlfuzzer is a simple web fuzzer in php with curl library.
 
 <img src="curlfuzzer.png"></img>
@@ -84,6 +84,9 @@ ex:
  - curlfuzzer --url 'http://example.com/' --wordlist words.txt --sc 200,204,301,302,307,401,403,405
  - curlfuzzer --utl 'http://example.com/FUZZ' -w words.txt --sleep 10:2 --hc 404
 ```
+
+## CurlFuzzer Html Report
+<img src="localhost.png"></img>
 
 ## License
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]

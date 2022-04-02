@@ -36,6 +36,8 @@
 		die();
 	}
 
+	$term_cols = intval(exec('tput cols'));
+
 	if (!file_exists($_SERVER['HOME'] . '/.config')) {
 		if (!mkdir($_SERVER['HOME'] . '/.config')) {
 			printf(" %s\n", 'Failed to create directy');
@@ -71,13 +73,6 @@
 	$config = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/config.json');
 	$config = json_decode($config, true);
 
-	/* if (intval(exec('tput cols')) < 120) { */
-		$w_size = 43 - (120 - intval(exec('tput cols')));
-	/* }
-	else {
-		$w_size = 43;
-	} */
-
 	$gopt_str = ['u:', 'w:', 'd:', 'p:', 't:', 'X:', 'H:', 'A:', 'b:', 'q', 'f', 'h', 'r', 'i:', 's'];
 	define('COMMAND', getopt(implode('', $gopt_str), $gopt_arr = [
 		'url:', 'wordlist:', 'data:', 'proxy:', 'thread:', 'method:',
@@ -88,8 +83,8 @@
 		'upgrade', 'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
 
-		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bt:',
-		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'st:',
+		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bm:',
+		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'sm:',
 	]));
 
 	foreach ($gopt_str as $key => $opt) {
@@ -576,16 +571,33 @@
 		}
 
 		$cf = [];
-		array_push($cf, sprintf("%s\n", '╶─╼ cURL Fuzzer v.1 ╾───────────────────────────────────────────────────────────────────╴'));
+		$cf_head = "";
+		for ($i = 0; strlen($cf_head) <= $term_cols + 120; $i++) {
+			if ($i === 0) {
+				$cf_head = $cf_head . "╶";
+			}
+			elseif ($i === 2) {
+				$cf_head = $cf_head . "╼ cURL Fuzzer v" . $config['version'] . " ╾";
+			}
+			else {
+				$cf_head = $cf_head . "─";
+			}
+		}
+
+		unset($i);
+
+		$cf_head = $cf_head . "╴";
+		array_push($cf, sprintf("%s\n", $cf_head));
+		unset($cf_head);
 
 		if (!isset($data) && !isset(COMMAND['method']) && !isset(COMMAND['X'])) {
-			array_push($cf, sprintf("%s\n", ' + Method           : GET'));
+			array_push($cf, sprintf("%s\n", ' + Method             : GET'));
 		}
 		elseif (isset($data) && !isset(COMMAND['method']) && !isset(COMMAND['X'])) {
-			array_push($cf, sprintf("%s\n", ' + Method           : POST'));
+			array_push($cf, sprintf("%s\n", ' + Method             : POST'));
 		}
 		elseif (isset(COMMAND['method'])) {
-			array_push($cf, sprintf("%s\n", ' + Method           : ' . COMMAND['method']));
+			array_push($cf, sprintf("%s\n", ' + Method             : ' . COMMAND['method']));
 
 			$method = COMMAND['method'];
 
@@ -605,7 +617,7 @@
 			}
 		}
 		elseif (isset(COMMAND['X'])) {
-			array_push($cf, sprintf("%s\n", ' + Method           : ' . COMMAND['X']));
+			array_push($cf, sprintf("%s\n", ' + Method             : ' . COMMAND['X']));
 
 			$method = COMMAND['X'];
 
@@ -625,17 +637,17 @@
 			}
 		}
 
-		array_push($cf, sprintf("%s\n", ' + Url              : ' . $url));
+		array_push($cf, sprintf("%s\n", ' + Url                : ' . $url));
 
 		if (isset($data)) {
-			array_push($cf, sprintf("%s\n", ' + Data             : ' . $data));
+			array_push($cf, sprintf("%s\n", ' + Data               : ' . $data));
 		}
 
 		if (isset(COMMAND['w'])) {
-			array_push($cf, sprintf("%s\n", ' + Wordlist         : ' . COMMAND['w']));
+			array_push($cf, sprintf("%s\n", ' + Wordlist           : ' . COMMAND['w']));
 		}
 		elseif (isset(COMMAND['wordlist'])) {
-			array_push($cf, sprintf("%s\n", ' + Wordlist         : ' . COMMAND['wordlist']));
+			array_push($cf, sprintf("%s\n", ' + Wordlist           : ' . COMMAND['wordlist']));
 		}
 
 		if (isset(COMMAND['user-agent'])) {
@@ -651,7 +663,7 @@
 				$user_agent = $config['user-agent']['firefox'];
 			}
 
-			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
+			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
 
 			if ($user_agent_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $user_agent))) {
 				$valute = 'true';
@@ -681,7 +693,7 @@
 				$user_agent = $config['user-agent']['firefox'];
 			}
 
-			array_push($cf, sprintf("%s\n", ' + User-Agent       : ' . $user_agent));
+			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
 
 			if ($user_agent_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $user_agent))) {
 				$valute = 'true';
@@ -699,18 +711,18 @@
 			}
 		}
 		else {
-			array_push($cf, sprintf("%s\n", ' + User-Agent       : PHP cURL WebFuzzer'));
+			array_push($cf, sprintf("%s\n", ' + User-Agent         : PHP cURL WebFuzzer'));
 		}
 
-		array_push($cf, sprintf("%s\n", ' + Accept-Encoding  : gzip, deflate'));
-		array_push($cf, sprintf("%s\n", ' + Accept           : */*'));
-		array_push($cf, sprintf("%s\n", ' + Connection       : close'));
+		array_push($cf, sprintf("%s\n", ' + Accept-Encoding    : gzip, deflate'));
+		array_push($cf, sprintf("%s\n", ' + Accept             : */*'));
+		array_push($cf, sprintf("%s\n", ' + Connection         : close'));
 
 		if (isset($json) && $json) {
-			array_push($cf, sprintf("%s\n", ' + Content-Type     : application/json'));
+			array_push($cf, sprintf("%s\n", ' + Content-Type       : application/json'));
 		}
 		elseif (isset($data_fuzz) && $data_fuzz || isset($method) && $method === 'POST') {
-			array_push($cf, sprintf("%s\n", ' + Content-Type     : application/x-www-form-urlencoded'));
+			array_push($cf, sprintf("%s\n", ' + Content-Type       : application/x-www-form-urlencoded'));
 		}
 
 		if (isset(COMMAND['header']) || isset(COMMAND['H'])) {
@@ -723,7 +735,7 @@
 			}
 
 			if (is_string($header)) {
-				array_push($cf, sprintf("%s\n", ' + Header           : ' . $header));
+				array_push($cf, sprintf("%s\n", ' + Header             : ' . $header));
 
 				if ($header_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $header))) {
 					$valute = 'true';
@@ -743,7 +755,7 @@
 
 			if (is_array($header)) {
 				for ($h = 0; $h < count($header); $h++) {
-					array_push($cf, sprintf("%s\n", ' + Header           : ' . $header[$h]));
+					array_push($cf, sprintf("%s\n", ' + Header             : ' . $header[$h]));
 				}
 
 				if (count($h_fuzz = preg_grep('/' . $config['fuzztag'] . '/', $header)) > 0) {
@@ -784,7 +796,7 @@
 			}
 
 			if (is_string($cookie)) {
-				array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie));
+				array_push($cf, sprintf("%s\n", ' + Cookie             : ' . $cookie));
 
 				if ($cookie_fuzz = is_integer($number = preg_match_all('/' . $config['fuzztag'] . '/', $cookie))) {
 					$valute = 'true';
@@ -804,7 +816,7 @@
 
 			if (is_array($cookie)) {
 				for ($c = 0; $c < count($cookie); $c++) {
-					array_push($cf, sprintf("%s\n", ' + Cookie           : ' . $cookie[$c]));
+					array_push($cf, sprintf("%s\n", ' + Cookie             : ' . $cookie[$c]));
 				}
 
 				if (count($c_fuzz = preg_grep('/' . $config['fuzztag'] . '/', $cookie)) > 0) {
@@ -836,13 +848,13 @@
 		}
 
 		if (isset(COMMAND['timeout'])) {
-			array_push($cf, sprintf("%s\n", ' + Timeout          : ' . COMMAND['timeout']));
+			array_push($cf, sprintf("%s\n", ' + Timeout            : ' . COMMAND['timeout']));
 		}
 		else {
-			array_push($cf, sprintf("%s\n", ' + Timeout          : 10' ));
+			array_push($cf, sprintf("%s\n", ' + Timeout            : 10' ));
 		}
 
-		array_push($cf, sprintf("%s\n", ' + Threads          : ' . $multi));
+		array_push($cf, sprintf("%s\n", ' + Threads            : ' . $multi));
 
 		$show_or_hide_arr = preg_grep('/--(h|s|b).\b/', $argv);
 		$show_or_hide_arr = array_unique($show_or_hide_arr);
@@ -860,6 +872,9 @@
 							break;
 						case 'h':
 							$soh = 'Hide';
+							break;
+						case 'b':
+							$soh = "Bigger";
 							break;
 					}
 
@@ -885,18 +900,18 @@
 						case 'f':
 							$soh = $soh . ' String';
 							break;
-						case 't':
+						case 'm':
 							switch ($soh) {
 								case 'Show':
-									$soh = 'Smaller Time';
+									$soh = 'Smaller Ms Time';
 									break;
-								case 'Hide':
-									$soh = 'Bigger Time';
+								case 'Bigger':
+									$soh = 'Bigger Ms Time';
 									break;
 							}
 					}
 
-					array_push($cf, sprintf("%-20s: %s\n", ' + ' . $soh, str_replace(',', ', ', COMMAND[str_replace('-', '', $show_or_hide)])));
+					array_push($cf, sprintf("%-22s: %s\n", ' + ' . $soh, str_replace(',', ', ', COMMAND[str_replace('-', '', $show_or_hide)])));
 
 					unset($soh);
 					unset($show_or_hide);
@@ -909,6 +924,9 @@
 								break;
 							case 'h':
 								$soh = 'Hide';
+								break;
+							case 'b':
+								$soh = 'Bigger';
 								break;
 						}
 
@@ -934,18 +952,18 @@
 							case 'f':
 								$soh = $soh . ' String';
 								break;
-							case 't':
+							case 'm':
 								switch ($soh) {
 									case 'Show':
-										$soh = 'Smaller Time';
+										$soh = 'Smaller Ms Time';
 										break;
-									case 'Hide':
-										$soh = 'Bigger Time';
+									case 'Bigger':
+										$soh = 'Bigger Ms Time';
 										break;
 								}
 						}
 
-						array_push($cf, sprintf("%-20s: %s\n", ' + ' . $soh, $soh_valute));
+						array_push($cf, sprintf("%-22s: %s\n", ' + ' . $soh, $soh_valute));
 					}
 
 					unset($soh);
@@ -955,11 +973,11 @@
 		}
 
 		if (isset(COMMAND['reflect']) || isset(COMMAND['r'])) {
-			array_push($cf, sprintf("%s\n", ' + Reflect          : True'));
+			array_push($cf, sprintf("%s\n", ' + Reflect            : True'));
 		}
 
 		if (isset($use_proxy)) {
-			array_push($cf, sprintf("%s\n", ' + Proxy            : ' . $proxy[0] . '://' . $proxy[1 - $p] . ':' . $proxy[2 - $p] . '/'));
+			array_push($cf, sprintf("%s\n", ' + Proxy              : ' . $proxy[0] . '://' . $proxy[1 - $p] . ':' . $proxy[2 - $p] . '/'));
 		}
 
 		$crypto = preg_grep('/lower|upper|b64d|b64e|hex|urlen|urlde|md2|md4|md5|sha1|sha256|sha384|sha512/', array_keys(COMMAND));
@@ -969,63 +987,63 @@
 			switch ($cry) {
 				case 'lower':
 					$wordlines = array_map('strtolower', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToLower       : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToLower         : True'));
 					break;
 				case 'upper':
 					$wordlines = array_map('strtoupper', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToUpper       : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToUpper         : True'));
 					break;
 				case 'b64d':
 					$wordlines = array_map('base64_decode', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + Base64ToStr      : True'));
+					array_push($cf, sprintf("%s\n", ' + Base64ToStr        : True'));
 					break;
 				case 'b64e':
 					$wordlines = array_map('base64_encode', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToBase64      : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToBase64        : True'));
 					break;
 				case 'hex':
 					$wordlines = array_map('bin2hex', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToHex         : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToHex           : True'));
 					break;
 				case 'urlde':
 					$wordlines = array_map('urldecode', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + UrlToStr         : True'));
+					array_push($cf, sprintf("%s\n", ' + UrlToStr           : True'));
 					break;
 				case 'urlen':
 					$wordlines = array_map('urlencode', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToUrl         : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToUrl           : True'));
 					break;
 				case 'md2':
 					$wordlines = array_map('md2', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToMd2         : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToMd2           : True'));
 					break;
 				case 'md4':
 					$wordlines = array_map('md4', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToMd4         : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToMd4           : True'));
 					break;
 				case 'md5':
 					$wordlines = array_map('md5', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToMd5         : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToMd5           : True'));
 					break;
 				case 'sha1':
 					$wordlines = array_map('sha1', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToSha1        : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToSha1          : True'));
 					break;
 				case 'sha224':
 					$wordlines = array_map('sha224', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToSha224      : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToSha224        : True'));
 					break;
 				case 'sha256':
 					$wordlines = array_map('sha256', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToSha256      : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToSha256        : True'));
 					break;
 				case 'sha384':
 					$wordlines = array_map('sha384', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToSha384      : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToSha384        : True'));
 					break;
 				case 'sha512':
 					$wordlines = array_map('sha512', $wordlines);
-					array_push($cf, sprintf("%s\n", ' + StrToSha512      : True'));
+					array_push($cf, sprintf("%s\n", ' + StrToSha512        : True'));
 					break;
 			}
 		}
@@ -1034,12 +1052,26 @@
 		unset($crypto);
 
 		if (isset($make_report) && $make_report) {
-			array_push($cf, sprintf("%s\n", ' + Html Report      : True'));
+			array_push($cf, sprintf("%s\n", ' + Html Report        : True'));
 		}
 
-		array_push($cf, sprintf("%s\n", ' + Fuzz Tag         : ' . $config['fuzztag']));
+		array_push($cf, sprintf("%s\n", ' + Fuzz Tag           : ' . $config['fuzztag']));
 
-		array_push($cf, sprintf("%s\n", '╶───────────────────────────────────────────────────────────────────────────────────────╴'));
+		$cf_tail = "";
+		for ($i = 0; strlen($cf_tail) < $term_cols + 157; $i++) {
+			if (strlen($cf_tail) === 0) {
+				$cf_tail = $cf_tail . "╶";
+			}
+			else {
+				$cf_tail = $cf_tail . "─";
+			}
+		}
+
+		unset($i);
+		$cf_tail = $cf_tail . "╴";
+
+		array_push($cf, sprintf("%s\n", $cf_tail));
+		unset($cf_tail);
 
 		$fuzz = count(preg_grep('/true/', $fuzz));
 
@@ -1431,7 +1463,7 @@
 				$http_response_info = curl_getinfo($$http_request);
 				$status = intval($http_response_info['http_code']);
 				$size   = intval($http_response_info['size_download']);
-				$time   = substr(strval($http_response_info["connect_time"] * 1000), 0, 6);
+				$time   = substr(strval($http_response_info["starttransfer_time"] * 1000), 0, 6);
 
 				$http_response = curl_multi_getcontent($$http_request);
 
@@ -1902,17 +1934,17 @@
 						unset($hide_length);
 					}
 
-					if (isset(COMMAND['st'])) {
-						$show_time = COMMAND['st'];
+					if (isset(COMMAND['sm'])) {
+						$smaller_millisecond = COMMAND['sm'];
 
-						if (is_string($show_time)) {
-							if (is_integer(strpos($show_time, ','))) {
-								$show_time = explode(',', $show_time);
+						if (is_string($smaller_millisecond)) {
+							if (is_integer(strpos($smaller_millisecond, ','))) {
+								$smaller_millisecond = explode(',', $smaller_millisecond);
 							}
 						}
 
-						if (is_string($show_time)) {
-							if (floatval($show_time) > $time) {
+						if (is_string($smaller_millisecond)) {
+							if (floatval($smaller_millisecond) > $time) {
 								array_push($display['show'], 'yes');
 							}
 							else {
@@ -1920,8 +1952,8 @@
 							}
 						}
 						else {
-							foreach ($show_time as $st) {
-								if (floatval($st) > $time) {
+							foreach ($smaller_millisecond as $sm) {
+								if (floatval($sm) > $time) {
 									array_push($display['show'], 'yes');
 								}
 								else {
@@ -1930,20 +1962,20 @@
 							}
 						}
 
-						unset($show_time);
+						unset($smaller_millisecond);
 					}
 
-					if (isset(COMMAND['bt'])) {
-						$bigger_time = COMMAND['bt'];
+					if (isset(COMMAND['bm'])) {
+						$bigger_millisecond = COMMAND['bm'];
 
-						if (is_string($bigger_time)) {
-							if (is_integer(strpos($bigger_time, ','))) {
-								$bigger_time = explode(',', $bigger_time);
+						if (is_string($bigger_millisecond)) {
+							if (is_integer(strpos($bigger_millisecond, ','))) {
+								$bigger_millisecond = explode(',', $bigger_millisecond);
 							}
 						}
 
-						if (is_string($bigger_time)) {
-							if (floatval($bigger_time) < $time) {
+						if (is_string($bigger_millisecond)) {
+							if (floatval($bigger_millisecond) < $time) {
 								array_push($display['hide'], 'yes');
 							}
 							else {
@@ -1951,8 +1983,8 @@
 							}
 						}
 						else {
-							foreach ($bigger_time as $bt) {
-								if (floatval($bt) < $time) {
+							foreach ($bigger_millisecond as $bm) {
+								if (floatval($bm) < $time) {
 									array_push($display['hide'], 'yes');
 								}
 								else {
@@ -1961,7 +1993,7 @@
 							}
 						}
 
-						unset($bigger_time);
+						unset($bigger_millisecond);
 					}
 
 					$show = count(preg_grep('/yes/', $display['show']));
@@ -2091,12 +2123,7 @@
 							$status = "\e[0;35m" . $status . "\e[0m";
 						}
 
-						if (isset(COMMAND['right'])) {
-							printf("\r %07s: c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s %-" . $w_size . "s\n", ($i + $l + 1), $status, $size, $lines, $words, $length, $time, "'" . $$http_payload . "'");
-						}
-						else {
-							printf("\r %07s: %-" . $w_size . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s t: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
-						}
+						printf("\r %07s: %-" . 42 - (120 - $term_cols) . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s ms: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
 
 						if (isset(COMMAND['req-report']) && !isset(COMMAND['verbose'])) {
 							if (!file_exists('req-report')) {
@@ -2198,63 +2225,63 @@
 		curlfuzzer by Anonymous Kali
 		Usage: curlfuzzer [OPTIONS]
 
-		  -u,   --url          string  : set target url
-		  -d,   --data         string  : POST data (format: foo=bar or {"foo":"bar"})
-		  -t,   --thread       integer : multi thread
-		        --timeout      integer : set timeout
-		  -X,   --method       string  : set request method
-		  -b,   --cookie       string  : set cookie
-		  -p,   --proxy        string  : set proxy (format: type://host:port/ or type://user@pass:host:port/)
+		  -u,   --url          string   : set target url
+		  -d,   --data         string   : POST data (format: foo=bar or {"foo":"bar"})
+		  -t,   --thread       integer  : multi thread
+		        --timeout      integer  : set timeout
+		  -X,   --method       string   : set request method
+		  -b,   --cookie       string   : set cookie
+		  -p,   --proxy        string   : set proxy (format: type://host:port/ or type://user@pass:host:port/)
 		                                             types: http, https, socks4a, socks<4-5>
-		  -H,   --header       string  : set request header
-		  -A,   --user-agent   string  : set costume user-agent or emulate android, ios, firefox header
-		  -i,   --interface    string  : set interface (You can not use it with a proxy)
-		        --cacert       string  : set cacert PEM, CER
-		        --insecure     null    : disables TLS certificate validation
-		        --http1.0      null    : use HTTP 1.0
-		        --http1.1      null    : use HTTP 1.1
-		        --http2        null    : use HTTP 2
-		        --http2pk      null    : use HTTP 2 without HTTP/1.1 Upgrade
-		  -q,   --uniq         null    : unique wordlist content
-		  -s,   --sort         null    : sort wordlist content
-		  -f,   --full         null    : full payload write
+		  -H,   --header       string   : set request header
+		  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox header
+		  -i,   --interface    string   : set interface (You can not use it with a proxy)
+		        --cacert       string   : set cacert PEM, CER
+		        --insecure     null     : disables TLS certificate validation
+		        --http1.0      null     : use HTTP 1.0
+		        --http1.1      null     : use HTTP 1.1
+		        --http2        null     : use HTTP 2
+		        --http2pk      null     : use HTTP 2 without HTTP/1.1 Upgrade
+		  -q,   --uniq         null     : unique wordlist content
+		  -s,   --sort         null     : sort wordlist content
+		  -f,   --full         null     : full payload write
 
-		        --right        null    : Payload in right
-		  -r,   --reflect      null    : Reflect to payload
-		        --report       string  : make report (format: html)
-		        --req-report   string  : report all request in file
-		        --res-report   null    : report all response
-		        --sleep        string  : x request / sec (format: x:s)
-		        --test         null    : send 3 request
-		        --verbose      null    : verbose log
+		        --right        null     : Payload in right
+		  -r,   --reflect      null     : Reflect to payload
+		        --report       string   : make report (format: html)
+		        --req-report   string   : report all request in file
+		        --res-report   null     : report all response
+		        --sleep        string   : x request / sec (format: x:s)
+		        --test         null     : send 3 request
+		        --verbose      null     : verbose log
 
-		        --lower        null    : payload string lower
-		        --upper        null    : payload string upper
-		        --b64e         null    : payload string base64 encode
-		        --b64d         null    : payload string base64 decode
-		        --urlen        null    : payload string url encode
-		        --urlde        null    : payload string url decode
-		        --hex          null    : payload string to hexadecimal
+		        --lower        null     : payload string lower
+		        --upper        null     : payload string upper
+		        --b64e         null     : payload string base64 encode
+		        --b64d         null     : payload string base64 decode
+		        --urlen        null     : payload string url encode
+		        --urlde        null     : payload string url decode
+		        --hex          null     : payload string to hexadecimal
 
-		        --md2          null    : payload string to md2 hash
-		        --md4          null    : payload string to md4 hash
-		        --md5          null    : payload string to md5 hash
-		        --sha1         null    : payload string to sha1 hash
-		        --sha224       null    : payload string to sha224 hash
-		        --sha256       null    : payload string to sha256 hash
-		        --sha384       null    : payload string to sha384 hash
-		        --sha512       null    : payload string to sha512 hash
+		        --md2          null     : payload string to md2 hash
+		        --md4          null     : payload string to md4 hash
+		        --md5          null     : payload string to md5 hash
+		        --sha1         null     : payload string to sha1 hash
+		        --sha224       null     : payload string to sha224 hash
+		        --sha256       null     : payload string to sha256 hash
+		        --sha384       null     : payload string to sha384 hash
+		        --sha512       null     : payload string to sha512 hash
 
-		  --sc, --hc           integer : Show/Hide response status code
-		  --sl, --hl           integer : Show/Hide response lines
-		  --sw, --hw           integer : Show/Hide response words
-		  --sL, --sL           integer : Show/Hide response length
-		  --ss, --hs           integer : Show/Hide response size
-		  --sf, --hf           string  : Show/Hide response str
-		  --sr, --hr           string  : Show/Hide response regex
-		  --st, --sb           float   : Smaller/Bigger time
+		  --sc, --hc           integer  : Show/Hide response status code
+		  --sl, --hl           integer  : Show/Hide response lines
+		  --sw, --hw           integer  : Show/Hide response words
+		  --sL, --sL           integer  : Show/Hide response length
+		  --ss, --hs           integer  : Show/Hide response size
+		  --sf, --hf           string   : Show/Hide response str
+		  --sr, --hr           string   : Show/Hide response regex
+		  --sm, --bm           float    : Smaller/Bigger millisecond
 
-		  --upgrade            null    : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
+		  --upgrade            null     : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 		END;

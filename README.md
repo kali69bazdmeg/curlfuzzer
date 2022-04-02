@@ -15,63 +15,63 @@ chmod +x /usr/local/bin/curlfuzzer
 curlfuzzer by Anonymous Kali
 Usage: curlfuzzer [OPTIONS]
 
-  -u,   --url          string  : set target url
-  -d,   --data         string  : POST data (format: foo=bar or {"foo":"bar"})
-  -t,   --thread       integer : multi thread
-        --timeout      integer : set timeout
-  -X,   --method       string  : set request method
-  -b,   --cookie       string  : set cookie
-  -p,   --proxy        string  : set proxy (format: type://host:port/ or type://user@pass:host:port/)
+  -u,   --url          string   : set target url
+  -d,   --data         string   : POST data (format: foo=bar or {"foo":"bar"})
+  -t,   --thread       integer  : multi thread
+        --timeout      integer  : set timeout
+  -X,   --method       string   : set request method
+  -b,   --cookie       string   : set cookie
+  -p,   --proxy        string   : set proxy (format: type://host:port/ or type://user@pass:host:port/)
                                              types: http, https, socks4a, socks<4-5>
-  -H,   --header       string  : set request header
-  -A,   --user-agent   string  : set costume user-agent or emulate android, ios, firefox header
-  -i,   --interface    string  : set interface (You can not use it with a proxy)
-        --cacert       string  : set cacert PEM, CER
-        --insecure     null    : disables TLS certificate validation
-        --http1.0      null    : use HTTP 1.0
-        --http1.1      null    : use HTTP 1.1
-        --http2        null    : use HTTP 2
-        --http2pk      null    : use HTTP 2 without HTTP/1.1 Upgrade
-  -q,   --uniq         null    : unique wordlist content
-  -s,   --sort         null    : sort wordlist content
-  -f,   --full         null    : full payload write
+  -H,   --header       string   : set request header
+  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox header
+  -i,   --interface    string   : set interface (You can not use it with a proxy)
+        --cacert       string   : set cacert PEM, CER
+        --insecure     null     : disables TLS certificate validation
+        --http1.0      null     : use HTTP 1.0
+        --http1.1      null     : use HTTP 1.1
+        --http2        null     : use HTTP 2
+        --http2pk      null     : use HTTP 2 without HTTP/1.1 Upgrade
+  -q,   --uniq         null     : unique wordlist content
+  -s,   --sort         null     : sort wordlist content
+  -f,   --full         null     : full payload write
 
-        --right        null    : Payload in right
-  -r,   --reflect      null    : Reflect to payload
-        --report       string  : make report (format: html)
-        --req-report   string  : report all request in file
-        --res-report   null    : report all response
-        --sleep        string  : x request / sec (format: x:s)
-        --test         null    : send 3 request
-        --verbose      null    : verbose log
+        --right        null     : Payload in right
+  -r,   --reflect      null     : Reflect to payload
+        --report       string   : make report (format: html)
+        --req-report   string   : report all request in file
+        --res-report   null     : report all response
+        --sleep        string   : x request / sec (format: x:s)
+        --test         null     : send 3 request
+        --verbose      null     : verbose log
 
-        --lower        null    : payload string lower
-        --upper        null    : payload string upper
-        --b64e         null    : payload string base64 encode
-        --b64d         null    : payload string base64 decode
-        --urlen        null    : payload string url encode
-        --urlde        null    : payload string url decode
-        --hex          null    : payload string to hexadecimal
+        --lower        null     : payload string lower
+        --upper        null     : payload string upper
+        --b64e         null     : payload string base64 encode
+        --b64d         null     : payload string base64 decode
+        --urlen        null     : payload string url encode
+        --urlde        null     : payload string url decode
+        --hex          null     : payload string to hexadecimal
 
-        --md2          null    : payload string to md2 hash
-        --md4          null    : payload string to md4 hash
-        --md5          null    : payload string to md5 hash
-        --sha1         null    : payload string to sha1 hash
-        --sha224       null    : payload string to sha224 hash
-        --sha256       null    : payload string to sha256 hash
-        --sha384       null    : payload string to sha384 hash
-        --sha512       null    : payload string to sha512 hash
+        --md2          null     : payload string to md2 hash
+        --md4          null     : payload string to md4 hash
+        --md5          null     : payload string to md5 hash
+        --sha1         null     : payload string to sha1 hash
+        --sha224       null     : payload string to sha224 hash
+        --sha256       null     : payload string to sha256 hash
+        --sha384       null     : payload string to sha384 hash
+        --sha512       null     : payload string to sha512 hash
 
-  --sc, --hc           integer : Show/Hide response status code
-  --sl, --hl           integer : Show/Hide response lines
-  --sw, --hw           integer : Show/Hide response words
-  --sL, --sL           integer : Show/Hide response length
-  --ss, --hs           integer : Show/Hide response size
-  --sf, --hf           string  : Show/Hide response str
-  --sr, --hr           string  : Show/Hide response regex
-  --st, --sb           float   : Smaller/Bigger time
+  --sc, --hc           integer  : Show/Hide response status code
+  --sl, --hl           integer  : Show/Hide response lines
+  --sw, --hw           integer  : Show/Hide response words
+  --sL, --sL           integer  : Show/Hide response length
+  --ss, --hs           integer  : Show/Hide response size
+  --sf, --hf           string   : Show/Hide response str
+  --sr, --hr           string   : Show/Hide response regex
+  --sm, --bm           float    : Smaller/Bigger millisecond
 
-  --upgrade            null    : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
+  --upgrade            null     : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
 Fuzz tag: FUZZ

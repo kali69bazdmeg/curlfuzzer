@@ -36,7 +36,6 @@ Usage: curlfuzzer [OPTIONS]
   -s,   --sort         null     : sort wordlist content
   -f,   --full         null     : full payload write
 
-        --right        null     : Payload in right
   -r,   --reflect      null     : Reflect to payload
         --report       string   : make report (format: html)
         --req-report   string   : report all request in file

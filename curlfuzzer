@@ -79,8 +79,8 @@
 		'header:', 'user-agent:', 'interface:', 'cookie:', 'reflect',
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
 		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
-		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'right',
-		'upgrade', 'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
+		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'upgrade',
+		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bm:',
@@ -102,7 +102,7 @@
 
 	foreach (preg_grep('/^\-.\b/', $argv) as $key => $query) {
 		if (count(preg_grep('/' . $query . '\b/', $gopt_arr)) !== 1) {
-			printf(" %s: '%s'\n", 'Error: unknown flag:', $query);
+			printf(" %s: '%s'\n", 'Errorsor: unknown flag:', $query);
 			$stop = true;
 		}
 	}
@@ -395,7 +395,7 @@
 						fwrite($proxy_server, "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
 
 						if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server, 1024)) === 0) {
-							printf("Error: %s\n", 'This is not a http proxy server');
+							printf("Errorsor: %s\n", 'This is not a http proxy server');
 							fclose($proxy_server);
 							die();
 						}
@@ -716,7 +716,6 @@
 
 		array_push($cf, sprintf("%s\n", ' + Accept-Encoding    : gzip, deflate'));
 		array_push($cf, sprintf("%s\n", ' + Accept             : */*'));
-		array_push($cf, sprintf("%s\n", ' + Connection         : close'));
 
 		if (isset($json) && $json) {
 			array_push($cf, sprintf("%s\n", ' + Content-Type       : application/json'));
@@ -849,9 +848,6 @@
 
 		if (isset(COMMAND['timeout'])) {
 			array_push($cf, sprintf("%s\n", ' + Timeout            : ' . COMMAND['timeout']));
-		}
-		else {
-			array_push($cf, sprintf("%s\n", ' + Timeout            : 10' ));
 		}
 
 		array_push($cf, sprintf("%s\n", ' + Threads            : ' . $multi));
@@ -1153,10 +1149,10 @@
 				$$http_payload = $wordlines[$i + $j];
 
 				$http_request_header = [
-					'Host: ' . $url_parse['host'],
-					'Accept: */*',
-					'Connection: close',
-					'Expect: ',
+					// 'Host: ' . $url_parse['host'],
+					// 'Accept: */*',
+					// 'Connection: close',
+					// 'Expect: ',
 				];
 
 				if (isset($url_fuzz) && $url_fuzz) {
@@ -1213,7 +1209,7 @@
 						$user_agent = COMMAND['A'];
 					}
 
-					if (isset($user_agent_fuzz)) {
+					if (isset($user_agent_fuzz) && $user_agent_fuzz) {
 						$user_agent = str_replace($config['fuzztag'], $$http_payload, $user_agent);
 					}
 
@@ -1416,8 +1412,8 @@
 				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);
 				$hours     = floor($diff_time / 3600);
 				$minutes   = floor(($diff_time - ($hours * 3600)) / 60);
-				$seconds   = floor($diff_time - ($hours * 3600) - ($minutes * 60));
-				$runtime   = sprintf("%02s:%02s:%02s", $hours, $minutes, $seconds);
+				$seconds   = $diff_time - ($hours * 3600) - ($minutes * 60);
+				$runtime   = sprintf("%02s:%02s:%06.03f", $hours, $minutes, $seconds);
 
 				$status = curl_multi_exec($multi_tread, $active);
 
@@ -1493,6 +1489,9 @@
 						}
 						elseif (isset($header_fuzz) && $header_fuzz && is_string($header)) {
 							$$http_payload = str_replace($config['fuzztag'], $$http_payload, $header);
+						}
+						elseif (isset($user_agent_fuzz) && $user_agent_fuzz) {
+							$$http_payload = "User-Agent: " . $$http_payload;
 						}
 					}
 
@@ -2032,6 +2031,7 @@
 					if ($display) {
 						if (isset($make_report) && $make_report) {
 							$report_request = $http_response_info['request_header'];
+
 							if (isset($use_data) && $use_data) {
 								if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
 									if (isset($data_fuzz) && $data_fuzz) {
@@ -2174,8 +2174,8 @@
 				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);
 				$hours     = floor($diff_time / 3600);
 				$minutes   = floor(($diff_time - ($hours * 3600)) / 60);
-				$seconds   = floor($diff_time - ($hours * 3600) - ($minutes * 60));
-				$runtime   = sprintf("%02s:%02s:%02s", $hours, $minutes, $seconds);
+				$seconds   = $diff_time - ($hours * 3600) - ($minutes * 60);
+				$runtime   = sprintf("%02s:%02s:%06.03f", $hours, $minutes, $seconds);
 
 				printf("\r%s", ' Request: [' . $send . '/' . $wordcount . '] :: Response: [' . $m . '/' . $wordcount . '] :: RunTime: [' . $runtime . '] :: Errors: [' . $errors . ']');
 
@@ -2246,7 +2246,6 @@
 		  -s,   --sort         null     : sort wordlist content
 		  -f,   --full         null     : full payload write
 
-		        --right        null     : Payload in right
 		  -r,   --reflect      null     : Reflect to payload
 		        --report       string   : make report (format: html)
 		        --req-report   string   : report all request in file

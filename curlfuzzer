@@ -102,7 +102,7 @@
 
 	foreach (preg_grep('/^\-.\b/', $argv) as $key => $query) {
 		if (count(preg_grep('/' . $query . '\b/', $gopt_arr)) !== 1) {
-			printf(" %s: '%s'\n", 'Errorsor: unknown flag:', $query);
+			printf(" %s: '%s'\n", 'Error: unknown flag:', $query);
 			$stop = true;
 		}
 	}
@@ -395,7 +395,7 @@
 						fwrite($proxy_server, "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
 
 						if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server, 1024)) === 0) {
-							printf("Errorsor: %s\n", 'This is not a http proxy server');
+							printf("Error: %s\n", 'This is not a http proxy server');
 							fclose($proxy_server);
 							die();
 						}

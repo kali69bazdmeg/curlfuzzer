@@ -369,6 +369,8 @@
 		$url_parse = parse_url($url);
 		$url_parse['port'] = 80;
 
+		$sub_domain = !boolval(preg_match_all('/' . $config['fuzztag'] . '/', $url_parse['host']));
+
 		if (isset(COMMAND['proxy']) || isset(COMMAND['p'])) {
 			if (isset(COMMAND['proxy'])) {
 				$proxy = COMMAND['proxy'];
@@ -402,29 +404,38 @@
 
 						break;
 
-					/*
 					case 'socks4':
-						fwrite($proxy_server, "\04\01\00");
+						fwrite($proxy_server, hex2bin('040100502d21209c00'));
 
-						if (fread($proxy_server, 2) !== "\00\5a") {
-							printf(" %s\n", 'This is not a socks proxy server');
+						if ("005a000000000000" !== bin2hex(fread($proxy_server, 1024))) {
+							printf(" %s\n", 'This is not a socks4 proxy server');
 							fclose($proxy_server);
 							die();
 						}
 
 						break;
-					case 'socks5':
-						fwrite($proxy_server, "\05\01\00");
 
-						if (fread($proxy_server, 2) !== "\05\00") {
+					case 'socks4a':
+						fwrite($proxy_server, hex2bin('040100500000000100') . $url_parse['host'] . hex2bin("00"));
+
+						if ("005a000000000000" !== bin2hex(fread($proxy_server, 1024))) {
+							printf(" %s\n", 'This is not a socks4a proxy server');
+							fclose($proxy_server);
+							die();
+						}
+
+						break;
+
+					case 'socks5':
+						fwrite($proxy_server, hex2bin("05020001"));
+
+						if ("0500" !== bin2hex(fread($proxy_server, 1024))) {
 							printf(" %s\n", 'This is not a socks5 proxy server');
 							fclose($proxy_server);
 							die();
 						}
 
 						break;
-					*/
-
 				}
 
 				fclose($proxy_server);
@@ -498,12 +509,17 @@
 		if (isset(COMMAND['test'])) {
 			$wordlines = [
 				'',
+				'1',
+				'2',
+				'3',
 				'x',
 				'admin',
 				'curlfuzzer',
 			];
 
-			$multi = 1;
+			if (!isset(COMMAND['t']) && !isset(COMMAND['thread'])) {
+				$multi = 1;
+			}
 		}
 
 		if (isset(COMMAND['uniq']) || isset(COMMAND['q'])) {
@@ -524,12 +540,12 @@
 		$wordlines = array_values($wordlines);
 		$wordcount = count($wordlines);
 
-		if ($multi > $wordcount) {
-			$multi = $wordcount;
-		}
-
 		if (isset(COMMAND['st']) || isset(COMMAND['bt'])) {
 			$multi = 1;
+		}
+
+		if ($multi > $wordcount) {
+			$multi = $wordcount;
 		}
 
 		if (isset(COMMAND['report'])) {
@@ -1083,6 +1099,7 @@
 		}
 		else {
 			unset($fuzz);
+
 			foreach ($cf as $head) {
 				printf("%s", $head);
 			}
@@ -1279,7 +1296,7 @@
 						curl_setopt($$http_request, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
 					}
 					else {
-						printf(" %s\n", 'Invalid Proxy Type');
+						printf(" %s\n", 'Invalid Proxy Type: ' . $proxy[0]);
 						die();
 					}
 
@@ -2168,7 +2185,9 @@
 					}
 				}
 				else {
-					$errors++;
+					if ($sub_domain) {
+						$errors++;
+					}
 				}
 
 				$diff_time = substr(strval($start_time - microtime(true)), 1, 8);

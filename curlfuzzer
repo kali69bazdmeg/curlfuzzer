@@ -2243,8 +2243,8 @@
 		printf(" - CurlFuzzer Version  : %s\n", $config['version']);
 		printf(" - PHP Version         : %s\n", phpversion());
 		printf(" - cURL Version        : %s\n", curl_version()['version']);
-		printf(" - SSL Version         : %s\n", curl_version()['host']);
-		printf(" - OpenSSL Version     : %s\n", curl_version()['ssl_version']);
+		printf(" - Host                : %s\n", curl_version()['host']);
+		printf(" - SSL Version         : %s\n", curl_version()['ssl_version']);
 		printf(" - Libz Version        : %s\n", curl_version()['libz_version']);
 		printf(" - LibSSL Version      : %s\n", curl_version()['libssh_version']);
 	}

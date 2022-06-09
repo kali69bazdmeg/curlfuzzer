@@ -80,7 +80,7 @@
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
 		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'upgrade',
-		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen',
+		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen', 'version',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bm:',
@@ -2239,6 +2239,15 @@
 
 		printf("%s\n", '');
 	}
+	elseif (isset(COMMAND['version'])) {
+		printf(" - CurlFuzzer Version  : %s\n", $config['version']);
+		printf(" - PHP Version         : %s\n", phpversion());
+		printf(" - cURL Version        : %s\n", curl_version()['version']);
+		printf(" - SSL Version         : %s\n", curl_version()['host']);
+		printf(" - OpenSSL Version     : %s\n", curl_version()['ssl_version']);
+		printf(" - Libz Version        : %s\n", curl_version()['libz_version']);
+		printf(" - LibSSL Version      : %s\n", curl_version()['libssh_version']);
+	}
 	else {
 		$helper = <<< "END"
 		curlfuzzer by Anonymous Kali
@@ -2299,6 +2308,7 @@
 		  --sr, --hr           string   : Show/Hide response regex
 		  --sm, --bm           float    : Smaller/Bigger millisecond
 
+		  --version            null     : Show version numbers and quit
 		  --upgrade            null     : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 		Fuzzezable items: [url, header, user_agent, method, post_data, cookie]

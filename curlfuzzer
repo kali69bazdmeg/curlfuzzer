@@ -394,7 +394,7 @@
 			if (is_resource($proxy_server)) {
 				switch ($proxy[0]) {
 					case 'http':
-						fwrite($proxy_server, "CONNECT " . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
+						fwrite($proxy_server, 'CONNECT ' . $url_parse['host'] . ':' . $url_parse['port'] . " HTTP/1.1\r\n\r\n");
 
 						if (preg_match('/^HTTP\/\d\.\d 200 Connection established/', fread($proxy_server, 1024)) === 0) {
 							printf("Error: %s\n", 'This is not a http proxy server');
@@ -407,7 +407,7 @@
 					case 'socks4':
 						fwrite($proxy_server, hex2bin('040100502d21209c00'));
 
-						if ("005a000000000000" !== bin2hex(fread($proxy_server, 1024))) {
+						if ('005a000000000000' !== bin2hex(fread($proxy_server, 1024))) {
 							printf(" %s\n", 'This is not a socks4 proxy server');
 							fclose($proxy_server);
 							die();
@@ -416,9 +416,9 @@
 						break;
 
 					case 'socks4a':
-						fwrite($proxy_server, hex2bin('040100500000000100') . $url_parse['host'] . hex2bin("00"));
+						fwrite($proxy_server, hex2bin('040100500000000100') . $url_parse['host'] . hex2bin('00'));
 
-						if ("005a000000000000" !== bin2hex(fread($proxy_server, 1024))) {
+						if ('005a000000000000' !== bin2hex(fread($proxy_server, 1024))) {
 							printf(" %s\n", 'This is not a socks4a proxy server');
 							fclose($proxy_server);
 							die();
@@ -427,9 +427,9 @@
 						break;
 
 					case 'socks5':
-						fwrite($proxy_server, hex2bin("05020001"));
+						fwrite($proxy_server, hex2bin('05020001'));
 
-						if ("0500" !== bin2hex(fread($proxy_server, 1024))) {
+						if ('0500' !== bin2hex(fread($proxy_server, 1024))) {
 							printf(" %s\n", 'This is not a socks5 proxy server');
 							fclose($proxy_server);
 							die();
@@ -1166,10 +1166,9 @@
 				$$http_payload = $wordlines[$i + $j];
 
 				$http_request_header = [
-					// 'Host: ' . $url_parse['host'],
-					// 'Accept: */*',
-					// 'Connection: close',
-					// 'Expect: ',
+					'Accept: */*',
+					'Connection: close',
+					'Expect: ',
 				];
 
 				if (isset($url_fuzz) && $url_fuzz) {

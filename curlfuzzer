@@ -1171,6 +1171,19 @@
 					'Expect: ',
 				];
 
+				if (isset($header)) {
+					if (is_array($header)) {
+						if (1 > count(preg_grep('/^Host: .*/', $header))) {
+							array_push($http_request_header, 'Host: ' . $url_parse['host']);
+						}
+					}
+					else {
+						if (!intval(preg_match('/^Host: .*/', $header))) {
+							array_push($http_request_header, 'Host: ' . $url_parse['host']);
+						}
+					}
+				}
+
 				if (isset($url_fuzz) && $url_fuzz) {
 					$attack_url = str_replace($config['fuzztag'], urlencode($$http_payload), $url);
 				}

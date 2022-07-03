@@ -1288,11 +1288,11 @@
 					}
 				}
 
-				curl_setopt($$http_request, CURLOPT_HTTPHEADER, $http_request_header);
-
 				if (isset($json) && $json) {
 					array_push($http_request_header, 'Content-Type: application/json');
 				}
+
+				curl_setopt($$http_request, CURLOPT_HTTPHEADER, $http_request_header);
 
 				if (isset(COMMAND['user-agent']) || isset(COMMAND['A'])) {
 					if (isset(COMMAND['user-agent'])) {

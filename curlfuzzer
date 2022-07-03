@@ -109,12 +109,13 @@
 
 	if (!file_exists($_SERVER['HOME'] . '/.config/curlfuzzer/config.json')) {
 		$conf = [
-			'version' => '1.0',
-			'thread'  => '120',
-			'fuzztag' => 'FUZZ',
+			'version'  => '1.0',
+			'thread'   => '120',
+			'fuzztag'  => 'FUZZ',
+			'maxerror' => 15,
 
 			'user-agent' => [
-				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
+				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0',
 				'ios'     => 'Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B176 Safari/7534.48.3',
 				'android' => 'Mozilla/5.0 (Linux; U; Android 2.2; en-us; Droid Build/FRG22D) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
 				'curl'    => 'curl',
@@ -790,7 +791,7 @@
 			}
 		}
 		else {
-			array_push($cf, sprintf("%s\n", ' + User-Agent         : PHP cURL WebFuzzer'));
+			array_push($cf, sprintf("%s\n", ' + User-Agent         : PHP cURL WebFuzzer ' . $config['version']));
 		}
 
 		array_push($cf, sprintf("%s\n", ' + Accept-Encoding    : gzip, deflate'));
@@ -2218,12 +2219,27 @@
 							$status = "\e[0;35m" . $status . "\e[0m";
 						}
 
-						if (isset(COMMAND['hexdump'])) {
+						if (isset(COMMAND['hexdump']) && !isset(COMMAND['verbose'])) {
 							printf("\r\n %s\n", "Request HexDump:");
 							$hex_request = $http_response_info['request_header'];
 
-							if (isset($data_fuzz) && $data_fuzz) {
-								$hex_request .= $$http_payload;
+							if (isset($use_data) && $use_data) {
+								if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$hex_request .= $$http_payload;
+									}
+									else {
+										$hex_request .= $data;
+									}
+								}
+								else {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$hex_request .= str_replace($config['fuzztag'], $$http_payload, $data);
+									}
+									else {
+										$hex_request .= $data;
+									}
+								}
 							}
 
 							printf("%s", hexdump($hex_request));
@@ -2280,6 +2296,12 @@
 				else {
 					if ($sub_domain) {
 						$errors++;
+
+						if ($errors === $config['maxerror']) {
+							printf("\n %s %s %s\n", "CurlFuzzer Break: Max Error Limit", $config['maxerror'] , "Try --insecure argument");
+
+							die();
+						}
 					}
 				}
 

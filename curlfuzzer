@@ -31,6 +31,61 @@
 		return hash('sha512', $input);
 	}
 
+	// HexDump Function Source: https://stackoverflow.com/questions/1057572/how-can-i-get-a-hex-dump-of-a-string-in-php
+
+	/**
+	* Dumps a string into a traditional hex dump for programmers,
+	* in a format similar to the output of the BSD command hexdump -C file.
+	* The default result is a string.
+	* Supported options:
+	* <pre>
+	*   line_sep        - line seperator char, default = "\n"
+	*   bytes_per_line  - default = 16
+	*   pad_char        - character to replace non-readble characters with, default = '.'
+	* </pre>
+	*
+	* @param string $string
+	* @param array $options
+	* @param string|array
+	*/
+	function hexdump($string, array $options = null) {
+		if (!is_scalar($string)) {
+			throw new InvalidArgumentException('$string argument must be a string');
+		}
+
+		if (!is_array($options)) {
+			$options = array();
+		}
+
+		$line_sep       = isset($options['line_sep']) ? $options['line_sep'] : "\n";
+		$bytes_per_line = @$options['bytes_per_line'] ? $options['bytes_per_line'] : 16;
+		$pad_char       = isset($options['pad_char']) ? $options['pad_char'] : '.'; # padding for non-readable characters
+
+		$text_lines = str_split($string, $bytes_per_line);
+		$hex_lines  = str_split(bin2hex($string), $bytes_per_line * 2);
+
+		$offset = 0;
+		$output = [];
+		$bytes_per_line_div_2 = (int)($bytes_per_line / 2);
+
+		foreach ($hex_lines as $i => $hex_line) {
+			$text_line = $text_lines[$i];
+			$output []=
+				' ' . sprintf('%08x', $offset) . ': ' .
+				str_pad(
+					strlen($text_line) > $bytes_per_line_div_2
+					?
+						implode(' ', str_split(substr($hex_line, 0, $bytes_per_line), 2)) . ' ' .
+						implode(' ', str_split(substr($hex_line, $bytes_per_line), 2))
+					:
+					implode(' ', str_split($hex_line, 2)) , $bytes_per_line * 3) . '|' . preg_replace('/[^\x20-\x7e]/', $pad_char, $text_line) . '|';
+			$offset += $bytes_per_line;
+		}
+
+		// $output []= sprintf('%08x', strlen($string));
+		return @$options['want_array'] ? $output : join($line_sep, $output) . $line_sep;
+	}
+
 	if (!function_exists('curl_init')) {
 		printf(" %s\n", 'PHP cURL is not installed!');
 		die();
@@ -62,6 +117,7 @@
 				'firefox' => 'Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0',
 				'ios'     => 'Mozilla/5.0 (iPhone; CPU iPhone OS 5_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B176 Safari/7534.48.3',
 				'android' => 'Mozilla/5.0 (Linux; U; Android 2.2; en-us; Droid Build/FRG22D) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
+				'curl'    => 'curl',
 			],
 		];
 
@@ -82,6 +138,7 @@
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'upgrade',
 		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen', 'version',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
+		'hexdump',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bm:',
 		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'sm:',
@@ -171,7 +228,7 @@
 		die();
 	}
 
-	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (isset(COMMAND['w']) || isset(COMMAND['wordlist']) || isset(COMMAND['test'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']))) {
+	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (isset(COMMAND['w']) || isset(COMMAND['wordlist']) || isset(COMMAND['test'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']) && !isset(COMMAND['version']))) {
 		$fuzz = [];
 		if (isset(COMMAND['url'])) {
 			if (is_string(COMMAND['url'])) {
@@ -678,6 +735,9 @@
 			elseif ($user_agent === 'firefox') {
 				$user_agent = $config['user-agent']['firefox'];
 			}
+			elseif ($user_agent === 'curl') {
+				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
+			}
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
 
@@ -707,6 +767,9 @@
 			}
 			elseif ($user_agent === 'firefox') {
 				$user_agent = $config['user-agent']['firefox'];
+			}
+			elseif ($user_agent === 'curl') {
+				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
 			}
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
@@ -1251,11 +1314,14 @@
 					elseif ($user_agent === 'firefox') {
 						$user_agent = $config['user-agent']['firefox'];
 					}
+					elseif ($user_agent === 'curl') {
+						$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
+					}
 
 					curl_setopt($$http_request, CURLOPT_USERAGENT, $user_agent);
 				}
 				else {
-					curl_setopt($$http_request, CURLOPT_USERAGENT, 'PHP cURL WebFuzzer');
+					curl_setopt($$http_request, CURLOPT_USERAGENT, 'PHP cURL WebFuzzer ' . $config['version']);
 				}
 
 				if (isset(COMMAND['method']) || isset(COMMAND['X'])) {
@@ -2152,6 +2218,21 @@
 							$status = "\e[0;35m" . $status . "\e[0m";
 						}
 
+						if (isset(COMMAND['hexdump'])) {
+							printf("\r\n %s\n", "Request HexDump:");
+							$hex_request = $http_response_info['request_header'];
+
+							if (isset($data_fuzz) && $data_fuzz) {
+								$hex_request .= $$http_payload;
+							}
+
+							printf("%s", hexdump($hex_request));
+
+							printf("\n %s\n", "Response HexDump:");
+
+							printf("%s", hexdump($http_response));
+						}
+
 						printf("\r %07s: %-" . 42 - (120 - $term_cols) . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s ms: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
 
 						if (isset(COMMAND['req-report']) && !isset(COMMAND['verbose'])) {
@@ -2274,7 +2355,7 @@
 		  -p,   --proxy        string   : set proxy (format: type://host:port/ or type://user@pass:host:port/)
 		                                             types: http, https, socks4a, socks<4-5>
 		  -H,   --header       string   : set request header
-		  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox header
+		  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox, curl header
 		  -i,   --interface    string   : set interface (You can not use it with a proxy)
 		        --cacert       string   : set cacert PEM, CER
 		        --insecure     null     : disables TLS certificate validation
@@ -2293,6 +2374,7 @@
 		        --sleep        string   : x request / sec (format: x:s)
 		        --test         null     : send 3 request
 		        --verbose      null     : verbose log
+		        --hexdump      null     : request and response hexdump
 
 		        --lower        null     : payload string lower
 		        --upper        null     : payload string upper

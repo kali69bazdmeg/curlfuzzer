@@ -31,6 +31,21 @@
 		return hash('sha512', $input);
 	}
 
+	if (!function_exists('curl_init')) {
+		printf(" %s\n", 'PHP cURL is not installed!');
+		die();
+	}
+
+	$term_cols = intval(exec('tput cols'));
+
+	$bytes_per_line = floor(($term_cols - 14) / 4);
+
+	if ($bytes_per_line % 2 !== 0 ) {
+		$bytes_per_line = $bytes_per_line - 1;
+	}
+
+	$options['bytes_per_line'] = $bytes_per_line;
+
 	// HexDump Function Source: https://stackoverflow.com/questions/1057572/how-can-i-get-a-hex-dump-of-a-string-in-php
 
 	/**
@@ -58,7 +73,7 @@
 		}
 
 		$line_sep       = isset($options['line_sep']) ? $options['line_sep'] : "\n";
-		$bytes_per_line = @$options['bytes_per_line'] ? $options['bytes_per_line'] : 16;
+		$bytes_per_line = @$options['bytes_per_line'] ? $options['bytes_per_line'] : 20;
 		$pad_char       = isset($options['pad_char']) ? $options['pad_char'] : '.'; # padding for non-readable characters
 
 		$text_lines = str_split($string, $bytes_per_line);
@@ -85,13 +100,6 @@
 		// $output []= sprintf('%08x', strlen($string));
 		return @$options['want_array'] ? $output : join($line_sep, $output) . $line_sep;
 	}
-
-	if (!function_exists('curl_init')) {
-		printf(" %s\n", 'PHP cURL is not installed!');
-		die();
-	}
-
-	$term_cols = intval(exec('tput cols'));
 
 	if (!file_exists($_SERVER['HOME'] . '/.config')) {
 		if (!mkdir($_SERVER['HOME'] . '/.config')) {
@@ -2220,7 +2228,7 @@
 						}
 
 						if (isset(COMMAND['hexdump']) && !isset(COMMAND['verbose'])) {
-							printf("\r\n %s\n", "Request HexDump:");
+							printf("\r %-" . $term_cols . "s", "Request HexDump:");
 							$hex_request = $http_response_info['request_header'];
 
 							if (isset($use_data) && $use_data) {
@@ -2242,11 +2250,11 @@
 								}
 							}
 
-							printf("%s", hexdump($hex_request));
+							printf("\r%s", hexdump($hex_request, $options));
 
 							printf("\n %s\n", "Response HexDump:");
 
-							printf("%s", hexdump($http_response));
+							printf("\r%s\n", hexdump($http_response, $options));
 						}
 
 						printf("\r %07s: %-" . 42 - (120 - $term_cols) . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s ms: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);

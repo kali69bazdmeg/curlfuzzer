@@ -24,7 +24,7 @@ Usage: curlfuzzer [OPTIONS]
   -p,   --proxy        string   : set proxy (format: type://host:port/ or type://user@pass:host:port/)
                                              types: http, https, socks4a, socks<4-5>
   -H,   --header       string   : set request header
-  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox header
+  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox, curl header
   -i,   --interface    string   : set interface (You can not use it with a proxy)
         --cacert       string   : set cacert PEM, CER
         --insecure     null     : disables TLS certificate validation
@@ -43,6 +43,7 @@ Usage: curlfuzzer [OPTIONS]
         --sleep        string   : x request / sec (format: x:s)
         --test         null     : send 3 request
         --verbose      null     : verbose log
+        --hexdump      null     : request and response hexdump
 
         --lower        null     : payload string lower
         --upper        null     : payload string upper
@@ -70,6 +71,7 @@ Usage: curlfuzzer [OPTIONS]
   --sr, --hr           string   : Show/Hide response regex
   --sm, --bm           float    : Smaller/Bigger millisecond
 
+  --version            null     : Show version numbers and quit
   --upgrade            null     : Upgrade CurlFuzzer, report.{'js', 'css', 'html'} from GitHub
 
 Fuzzezable items: [url, header, user_agent, method, post_data, cookie]
@@ -82,7 +84,7 @@ ex:
  - curlfuzzer --url 'http://example.com/FUZZ' --test --hc 404 --hc 403 --full --uniq -p http://127.0.0.1:8080/
  - curlfuzzer --url 'http://example.com/' --wordlist words.txt --sc 200,204,301,302,307,401,403,405
  - curlfuzzer --utl 'http://example.com/FUZZ' -w words.txt --sleep 10:2 --hc 404
-```
+ ```
 
 ## CurlFuzzer Html Report
 <img src="localhost.png"></img>

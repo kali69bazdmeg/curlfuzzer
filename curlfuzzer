@@ -46,59 +46,43 @@
 
 	$options['bytes_per_line'] = $bytes_per_line;
 
-	// HexDump Function Source: https://stackoverflow.com/questions/1057572/how-can-i-get-a-hex-dump-of-a-string-in-php
-
-	/**
-	* Dumps a string into a traditional hex dump for programmers,
-	* in a format similar to the output of the BSD command hexdump -C file.
-	* The default result is a string.
-	* Supported options:
-	* <pre>
-	*   line_sep        - line seperator char, default = "\n"
-	*   bytes_per_line  - default = 16
-	*   pad_char        - character to replace non-readble characters with, default = '.'
-	* </pre>
-	*
-	* @param string $string
-	* @param array $options
-	* @param string|array
-	*/
-	function hexdump($string, array $options = null) {
+	function hexdump($string, $options = null) {
 		if (!is_scalar($string)) {
-			throw new InvalidArgumentException('$string argument must be a string');
+			return "Fasz";
 		}
 
-		if (!is_array($options)) {
-			$options = array();
+		if (is_null($options)) {
+			$options = [];
 		}
 
-		$line_sep       = isset($options['line_sep']) ? $options['line_sep'] : "\n";
-		$bytes_per_line = @$options['bytes_per_line'] ? $options['bytes_per_line'] : 20;
-		$pad_char       = isset($options['pad_char']) ? $options['pad_char'] : '.'; # padding for non-readable characters
+		$options['line_sep']       = isset($options['line_sep'])       ? $options['line_sep']       : "\n";
+		$options['bytes_per_line'] = isset($options['bytes_per_line']) ? $options['bytes_per_line'] : 16;
+		$options['pad_char']       = isset($options['pad_char'])       ? $options['pad_char']       : '.';
+		$options['bytes_group']    = isset($options['bytes_group'])    ? $options['bytes_group']    : 2;
 
-		$text_lines = str_split($string, $bytes_per_line);
-		$hex_lines  = str_split(bin2hex($string), $bytes_per_line * 2);
+		$format = " %08x: %-" . $options['bytes_per_line'] * 3 - 1 . "s  %-" . $options['bytes_per_line'] . "s\n";
 
-		$offset = 0;
-		$output = [];
-		$bytes_per_line_div_2 = (int)($bytes_per_line / 2);
+		$options['format']         = isset($options['format'])         ? $options['format']         : $format;
 
-		foreach ($hex_lines as $i => $hex_line) {
-			$text_line = $text_lines[$i];
-			$output []=
-				' ' . sprintf('%08x', $offset) . ': ' .
-				str_pad(
-					strlen($text_line) > $bytes_per_line_div_2
-					?
-						implode(' ', str_split(substr($hex_line, 0, $bytes_per_line), 2)) . ' ' .
-						implode(' ', str_split(substr($hex_line, $bytes_per_line), 2))
-					:
-					implode(' ', str_split($hex_line, 2)) , $bytes_per_line * 3) . '|' . preg_replace('/[^\x20-\x7e]/', $pad_char, $text_line) . '|';
-			$offset += $bytes_per_line;
-		}
+		$string = str_split($string, $options['bytes_per_line']);
 
-		// $output []= sprintf('%08x', strlen($string));
-		return @$options['want_array'] ? $output : join($line_sep, $output) . $line_sep;
+		$hex_id   = 0;
+		$hex_line = 0;
+		$hex_data = '';
+		$hex_dump = '';
+
+		do {
+			$hex_data = implode(' ', str_split(bin2hex($string[$hex_id]), $options['bytes_group']));
+
+			$hex_dump = $hex_dump . sprintf($options['format'], $hex_line, $hex_data, preg_replace('/[^\x20-\x7e]/', '.', $string[$hex_id]));
+
+			$hex_id = $hex_id + 1;
+			$hex_line = $hex_line + $options['bytes_per_line'];
+
+			unset($hex_data);
+		} while ($hex_id < count($string));
+
+		return $hex_dump;
 	}
 
 	if (!file_exists($_SERVER['HOME'] . '/.config')) {

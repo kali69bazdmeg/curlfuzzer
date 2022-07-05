@@ -2,6 +2,8 @@
 curlfuzzer is a simple web fuzzer in php with curl library.
 
 <img src="curlfuzzer.png"></img>
+<img src="curlfuzzer_hexdump.png"></img>
+<img src="curlfuzzer_rawdump.png"></img>
 
 ### Install
 You will need to install php and php-curl library first

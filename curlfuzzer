@@ -149,7 +149,7 @@
 		'url:', 'wordlist:', 'data:', 'proxy:', 'thread:', 'method:',
 		'header:', 'user-agent:', 'interface:', 'cookie:', 'reflect',
 		'cacert:', 'report:', 'sleep:', 'uniq', 'full', 'help', 'verbose',
-		'insecure', 'test', 'req-report', 'res-report', 'tread:', 'sort',
+		'test', 'req-report', 'res-report', 'tread:', 'sort',
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'upgrade',
 		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen', 'version',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
@@ -1438,18 +1438,12 @@
 					curl_setopt($$http_request, CURLOPT_CAINFO, COMMAND['cacert']);
 				}
 
-				if (isset(COMMAND['insecure'])) {
-					curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, false);
-					curl_setopt($$http_request, CURLOPT_SSL_VERIFYPEER, false);
-				}
-				else {
-					curl_setopt($$http_request, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-					curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, 2);
-					curl_setopt($$http_request, CURLOPT_SSL_VERIFYPEER, true);
-					curl_setopt($$http_request, CURLOPT_SSL_VERIFYSTATUS, true);
-					curl_setopt($$http_request, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-					curl_setopt($$http_request, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
-				}
+				curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($$http_request, CURLOPT_SSL_VERIFYPEER, false);
+				curl_setopt($$http_request, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+				curl_setopt($$http_request, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+				curl_setopt($$http_request, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+				curl_setopt($$http_request, CURLOPT_SSL_VERIFYHOST, 2);
 
 				if (isset(COMMAND['http1.0'])) {
 					curl_setopt($$http_request, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
@@ -2436,7 +2430,6 @@
 		  -A,   --user-agent   string   : set costume user-agent or emulate android, ios, firefox, curl header
 		  -i,   --interface    string   : set interface (You can not use it with a proxy)
 		        --cacert       string   : set cacert PEM, CER
-		        --insecure     null     : disables TLS certificate validation
 		        --http1.0      null     : use HTTP 1.0
 		        --http1.1      null     : use HTTP 1.1
 		        --http2        null     : use HTTP 2

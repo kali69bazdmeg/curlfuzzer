@@ -43,7 +43,9 @@ Usage: curlfuzzer [OPTIONS]
         --sleep        string   : x request / sec (format: x:s)
         --test         null     : send 3 request
         --verbose      null     : verbose log
-        --hexdump      null     : request and response hexdump
+
+        --hexdump      null     : request and response hexdump (xxd style)
+        --raw          null     : request and response read with escape sequences
 
         --lower        null     : payload string lower
         --upper        null     : payload string upper

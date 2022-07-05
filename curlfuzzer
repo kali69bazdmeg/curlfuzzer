@@ -60,7 +60,7 @@
 		$options['pad_char']       = isset($options['pad_char'])       ? $options['pad_char']       : '.';
 		$options['bytes_group']    = isset($options['bytes_group'])    ? $options['bytes_group']    : 2;
 
-		$format = " %08x: %-" . $options['bytes_per_line'] * 3 - 1 . "s  %-" . $options['bytes_per_line'] . "s\n";
+		$format = " %08x  %-" . $options['bytes_per_line'] * 3 - 1 . "s  |%-" . $options['bytes_per_line'] . "s|\n";
 
 		$options['format']         = isset($options['format'])         ? $options['format']         : $format;
 
@@ -1121,6 +1121,10 @@
 
 		if (isset($make_report) && $make_report) {
 			array_push($cf, sprintf("%s\n", ' + Html Report        : True'));
+		}
+
+		if (isset(COMMAND['hexdump']) && !COMMAND['hexdump']) {
+			array_push($cf, sprintf("%s\n", ' + HexDump            : True'));
 		}
 
 		array_push($cf, sprintf("%s\n", ' + Fuzz Tag           : ' . $config['fuzztag']));

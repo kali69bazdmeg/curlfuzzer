@@ -46,6 +46,28 @@
 
 	$options['bytes_per_line'] = $bytes_per_line;
 
+	function rawdump($string) {
+		if (!is_scalar($string)) {
+			return "Fasz";
+		}
+
+		$string = explode("\n", $string);
+
+		$raw_id   = 0;
+		$raw_data = '';
+		$raw_dump = '';
+
+		do {
+			$raw_data = $string[$raw_id];
+			$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t"], ["\\r", "\\n", "\\t"], $raw_data . "\n"));
+
+			$raw_id = $raw_id + 1;
+
+		} while ($raw_id < count($string));
+
+		return $raw_dump;
+	}
+
 	function hexdump($string, $options = null) {
 		if (!is_scalar($string)) {
 			return "Fasz";
@@ -131,7 +153,7 @@
 		'http1.0', 'http1.1', 'http2', 'http2pk', 'timeout:', 'upgrade',
 		'lower', 'upper', 'b64d', 'b64e', 'hex', 'urlde', 'urlen', 'version',
 		'md2', 'md4', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
-		'hexdump',
+		'hexdump', 'raw',
 
 		'hc:', 'hl:', 'hw:', 'hL:', 'hs:', 'hf:', 'hr:', 'bm:',
 		'sc:', 'sl:', 'sw:', 'sL:', 'ss:', 'sf:', 'sr:', 'sm:',
@@ -221,8 +243,9 @@
 		die();
 	}
 
-	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (isset(COMMAND['w']) || isset(COMMAND['wordlist']) || isset(COMMAND['test'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']) && !isset(COMMAND['version']))) {
+	if ((isset(COMMAND['u']) || isset(COMMAND['url'])) && (!isset(COMMAND['h']) && !isset(COMMAND['help']) && !isset(COMMAND['version']))) {
 		$fuzz = [];
+
 		if (isset(COMMAND['url'])) {
 			if (is_string(COMMAND['url'])) {
 				$url = COMMAND['url'];
@@ -570,6 +593,9 @@
 			if (!isset(COMMAND['t']) && !isset(COMMAND['thread'])) {
 				$multi = 1;
 			}
+		}
+		else if (!isset(COMMAND['wordlist']) && !isset(COMMAND['w']) && !isset(COMMAND['test'])) {
+			$wordlines = [''];
 		}
 
 		if (isset(COMMAND['uniq']) || isset(COMMAND['q'])) {
@@ -1146,6 +1172,10 @@
 		unset($cf_tail);
 
 		$fuzz = count(preg_grep('/true/', $fuzz));
+
+		if (!isset(COMMAND['wordlist']) && !isset(COMMAND['w']) && !isset(COMMAND['test'])) {
+			$fuzz = 1;
+		}
 
 		if ($fuzz !== 1) {
 			if ($fuzz < 1) {
@@ -2245,6 +2275,36 @@
 							printf("\r%s\n", hexdump($http_response, $options));
 						}
 
+						if (isset(COMMAND['raw']) && !isset(COMMAND['verbose'])) {
+							printf("\r %-" . $term_cols . "s", "Request Raw:");
+							$raw_request = $http_response_info['request_header'];
+
+							if (isset($use_data) && $use_data) {
+								if (isset(COMMAND['full']) || isset(COMMAND['f'])) {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$raw_request .= $$http_payload;
+									}
+									else {
+										$raw_request .= $data;
+									}
+								}
+								else {
+									if (isset($data_fuzz) && $data_fuzz) {
+										$raw_request .= str_replace($config['fuzztag'], $$http_payload, $data);
+									}
+									else {
+										$raw_request .= $data;
+									}
+								}
+							}
+
+							printf("\r%s", rawdump($raw_request));
+
+							printf("\n %s\n", "Response Raw:");
+
+							printf("\r%s\n", rawdump($http_response));
+						}
+
 						printf("\r %07s: %-" . 42 - (120 - $term_cols) . "s c: %s  s: %-8s l: %-8s w: %-8s L: %-8s ms: %-06s\n", ($i + $l + 1), utf8_decode($$http_payload), $status, $size, $lines, $words, $length, $time);
 
 						if (isset(COMMAND['req-report']) && !isset(COMMAND['verbose'])) {
@@ -2392,7 +2452,9 @@
 		        --sleep        string   : x request / sec (format: x:s)
 		        --test         null     : send 3 request
 		        --verbose      null     : verbose log
-		        --hexdump      null     : request and response hexdump
+
+		        --hexdump      null     : request and response hexdump (xxd style)
+		        --raw          null     : request and response read with escape sequences
 
 		        --lower        null     : payload string lower
 		        --upper        null     : payload string upper

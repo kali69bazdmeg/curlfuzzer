@@ -53,17 +53,24 @@
 
 		$string = explode("\n", $string);
 
+		$raw_count = count($string);
 		$raw_id   = 0;
 		$raw_data = '';
 		$raw_dump = '';
 
 		do {
-			$raw_data = $string[$raw_id];
-			$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t"], ["\\r", "\\n", "\\t"], $raw_data . "\n"));
+			if ($raw_id + 1 < $raw_count) {
+				$raw_data = $string[$raw_id] . "\n";
+			}
+			else {
+				$raw_data = $string[$raw_id];
+			}
+
+			$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t"], ["\\r", "\\n", "\\t"], $raw_data));
 
 			$raw_id = $raw_id + 1;
 
-		} while ($raw_id < count($string));
+		} while ($raw_id < $raw_count);
 
 		return $raw_dump;
 	}
@@ -205,27 +212,41 @@
 		$git_report_css     = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/report.css');
 		$loc_report_css     = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css');
 
+		$git_config_json    = @file_get_contents('https://raw.githubusercontent.com/kali69bazdmeg/curlfuzzer/main/config.json');
+		$loc_config_json    = @file_get_contents($_SERVER['HOME'] . '/.config/curlfuzzer/config.json');
+
 		if (!is_bool($git_curlfuzzer_ver) && !is_bool($loc_curlfuzzer_ver)) {
 			if (hash('sha256', $git_curlfuzzer_ver) !== hash('sha256', $loc_curlfuzzer_ver)) {
 				file_put_contents($argv[0], $git_curlfuzzer_ver);
+				printf(" %s\n", "CurlFuzzer Upgraded!");
 			}
 		}
 
-		if (!is_bool($git_report_html) && !is_bool($git_report_html)) {
+		if (!is_bool($git_report_html) && !is_bool($loc_report_html)) {
 			if (hash('sha256', $git_report_html) !== hash('sha256', $loc_report_html)) {
 				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.html', $git_report_html);
+				printf(" %s\n", "CurlFuzzer report.html upgraded!");
 			}
 		}
 
-		if (!is_bool($git_report_js) && !is_bool($git_report_js)) {
+		if (!is_bool($git_report_js) && !is_bool($loc_report_js)) {
 			if (hash('sha256', $git_report_js) !== hash('sha256', $loc_report_js)) {
 				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.js', $git_report_js);
+				printf(" %s\n", "CurlFuzzer report.js upgraded!");
 			}
 		}
 
-		if (!is_bool($git_report_css) && !is_bool($git_report_css)) {
+		if (!is_bool($git_report_css) && !is_bool($loc_report_css)) {
 			if (hash('sha256', $git_report_css) !== hash('sha256', $loc_report_css)) {
 				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/report.css', $git_report_css);
+				printf(" %s\n", "CurlFuzzer report.css upgraded!");
+			}
+		}
+
+		if (!is_bool($git_config_json) && !is_bool($loc_config_json)) {
+			if (hash('sha256', $git_config_json) !== hash('sha256', $loc_config_json)) {
+				file_put_contents($_SERVER['HOME'] . '/.config/curlfuzzer/config.json', $git_config_json);
+				printf(" %s\n", "CurlFuzzer config.json upgraded!");
 			}
 		}
 
@@ -237,8 +258,8 @@
 		unset($loc_report_js);
 		unset($git_report_css);
 		unset($loc_report_css);
-
-		printf("%s\n", 'CurlFuzzer upgraded.');
+		unset($git_config_json);
+		unset($loc_config_json);
 
 		die();
 	}
@@ -1151,6 +1172,10 @@
 
 		if (isset(COMMAND['hexdump']) && !COMMAND['hexdump']) {
 			array_push($cf, sprintf("%s\n", ' + HexDump            : True'));
+		}
+
+		if (isset(COMMAND['raw']) && !COMMAND['raw']) {
+			array_push($cf, sprintf("%s\n", ' + Raw                : True'));
 		}
 
 		array_push($cf, sprintf("%s\n", ' + Fuzz Tag           : ' . $config['fuzztag']));
@@ -2345,13 +2370,13 @@
 				}
 				else {
 					if ($sub_domain) {
-						$errors++;
-
 						if ($errors === $config['maxerror']) {
-							printf("\n %s %s %s\n", "CurlFuzzer Break: Max Error Limit", $config['maxerror'] , "Try --insecure argument");
+							printf("\n %s %s\n", "CurlFuzzer Break: Max Error Limit", $config['maxerror']);
 
 							die();
 						}
+
+						$errors++;
 					}
 				}
 

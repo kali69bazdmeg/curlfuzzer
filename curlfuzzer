@@ -48,10 +48,11 @@
 
 	function rawdump($string) {
 		if (!is_scalar($string)) {
-			return "Fasz";
+			return sprintf(" %07: %s\n", 1, "HexDump Bug");;
 		}
 
-		$string = explode("\n", $string);
+		$string = str_replace("\x0a", "\x0a\x00\x00\x00\x00", $string);
+		$string = explode("\x00\x00\x00\x00", $string);
 
 		$raw_count = count($string);
 		$raw_id   = 0;
@@ -59,14 +60,10 @@
 		$raw_dump = '';
 
 		do {
-			if ($raw_id + 1 < $raw_count) {
-				$raw_data = $string[$raw_id] . "\n";
-			}
-			else {
+			if (strlen($string[$raw_id]) > 0) {
 				$raw_data = $string[$raw_id];
+				$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t", "\b", "\f", "\0"], ["\\r", "\\n", "\\t", "\\b", "\\f", "\\0"], $raw_data));
 			}
-
-			$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t"], ["\\r", "\\n", "\\t"], $raw_data));
 
 			$raw_id = $raw_id + 1;
 
@@ -77,7 +74,7 @@
 
 	function hexdump($string, $options = null) {
 		if (!is_scalar($string)) {
-			return "Fasz";
+			return sprintf(" %07: %s\n", 1, "HexDump Bug");;
 		}
 
 		if (is_null($options)) {
@@ -2510,6 +2507,8 @@
 
 		$helper .= <<< "END"
 		ex:
+		 - curlfuzzer -u 'http://example.com/' -X HEAD --hexdump --proxy socks4a://127.0.0.1:9050
+		 - curlfuzzer -u 'http://example.com/' -d {"input":"data"}' --raw -A curl
 		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --method PUT --tread 20 --hc 404 --report report.html
 		 - curlfuzzer -u 'http://example.com/FUZZ' -w words.txt --hc 404 --tread 200 --user-agent android
 		 - curlfuzzer -u 'http://example.com/userinfo.php' --data 'uname=test&pass=FUZZ' -w words.txt --hf 'you must login'

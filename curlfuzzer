@@ -59,10 +59,13 @@
 		$raw_data = '';
 		$raw_dump = '';
 
+		$from_char = ["\r", "\n", "\t", "\b", "\f", "\0"];
+		$to_char   = ["\\r", "\\n", "\t\\t", "\\b", "\\f", "\\0"];
+
 		do {
 			if (strlen($string[$raw_id]) > 0) {
 				$raw_data = $string[$raw_id];
-				$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace(["\r", "\n", "\t", "\b", "\f", "\0"], ["\\r", "\\n", "\\t", "\\b", "\\f", "\\0"], $raw_data));
+				$raw_dump = $raw_dump . sprintf(" %07s: %s\n", $raw_id + 1, str_replace($from_char, $to_char, $raw_data));
 			}
 
 			$raw_id = $raw_id + 1;
@@ -2468,7 +2471,7 @@
 		        --test         null     : send 3 request
 		        --verbose      null     : verbose log
 
-		        --hexdump      null     : request and response hexdump (xxd style)
+		        --hexdump      null     : request and response hexdump
 		        --raw          null     : request and response read with escape sequences
 
 		        --lower        null     : payload string lower

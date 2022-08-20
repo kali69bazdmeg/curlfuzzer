@@ -460,7 +460,7 @@
 			}
 		}
 
-		$url_parse = parse_url($url);
+		$url_parse = parse_url(trim($url));
 		$url_parse['port'] = 80;
 
 		$sub_domain = !boolval(preg_match_all('/' . $config['fuzztag'] . '/', $url_parse['host']));
@@ -776,7 +776,7 @@
 				$user_agent = $config['user-agent']['firefox'];
 			}
 			elseif ($user_agent === 'curl') {
-				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
+				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'] . " (Beta)";
 			}
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
@@ -809,7 +809,7 @@
 				$user_agent = $config['user-agent']['firefox'];
 			}
 			elseif ($user_agent === 'curl') {
-				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
+				$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'] . " (Beta)";
 			}
 
 			array_push($cf, sprintf("%s\n", ' + User-Agent         : ' . $user_agent));
@@ -830,7 +830,7 @@
 			}
 		}
 		else {
-			array_push($cf, sprintf("%s\n", ' + User-Agent         : PHP cURL WebFuzzer ' . $config['version']));
+			array_push($cf, sprintf("%s\n", ' + User-Agent         : PHP cURL WebFuzzer ' . $config['version'] . " (Beta)"));
 		}
 
 		array_push($cf, sprintf("%s\n", ' + Accept-Encoding    : gzip, deflate'));
@@ -1367,13 +1367,13 @@
 						$user_agent = $config['user-agent']['firefox'];
 					}
 					elseif ($user_agent === 'curl') {
-						$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'];
+						$user_agent = $config['user-agent']['curl'] . '/' . curl_version()['version'] . " (Beta)";
 					}
 
 					curl_setopt($$http_request, CURLOPT_USERAGENT, $user_agent);
 				}
 				else {
-					curl_setopt($$http_request, CURLOPT_USERAGENT, 'PHP cURL WebFuzzer ' . $config['version']);
+					curl_setopt($$http_request, CURLOPT_USERAGENT, 'PHP cURL WebFuzzer ' . $config['version'] . " (Beta)");
 				}
 
 				if (isset(COMMAND['method']) || isset(COMMAND['X'])) {
@@ -2465,7 +2465,7 @@
 
 		  -r,   --reflect      null     : Reflect to payload
 		        --report       string   : make report (format: html)
-		        --req-report   string   : report all request in file
+		        --req-report   null     : report all request in file
 		        --res-report   null     : report all response
 		        --sleep        string   : x request / sec (format: x:s)
 		        --test         null     : send 3 request

@@ -40,7 +40,7 @@ Usage: curlfuzzer [OPTIONS]
 
   -r,   --reflect      null     : Reflect to payload
         --report       string   : make report (format: html)
-        --req-report   string   : report all request in file
+        --req-report   null     : report all request in file
         --res-report   null     : report all response
         --sleep        string   : x request / sec (format: x:s)
         --test         null     : send 3 request

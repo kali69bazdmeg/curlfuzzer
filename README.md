@@ -6,7 +6,7 @@ curlfuzzer is a simple web fuzzer in php with curl library.
 <img src="curlfuzzer_rawdump.png"></img>
 
 ### Install
-You will need to install php and php-curl library first
+You will need to install php, php-json and php-curl library first!
 ```
 git clone https://github.com/kali69bazdmeg/curlfuzzer.git
 cp curlfuzzer/curlfuzzer /usr/local/bin/curlfuzzer
